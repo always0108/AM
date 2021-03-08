@@ -31,31 +31,26 @@ void Server::Listen_action()
 void Server::Messageclassify()
 {
     QStringList list = msg_recv.split("/");
+    signal_recv =list[0];
     if(list[0]=="infill"||list[0]=="gcode"){
-        signal_recv =list[0];
     }else if(list[0]=="previewPath"){
-        signal_recv =list[0];
         layer_nr = list[1].toInt();
     }else if(list[0]=="slicing"){
-        signal_recv =list[0];
         thickness = list[1].toDouble();
     }else if(list[0]=="printSettings"){
-        signal_recv =list[0];
         printSettings = list[1];
     }else if(list[0]=="paths"){
-        signal_recv =list[0];
         layer_nr = list[1].toInt();
         QString args;
         args = QString::number(layer_nr);
         sendfile->fileName = "/home/zero/function/output/paths/" + args + "path.cli";
-
         //本地测试使用
         //sendfile->fileName = "C:\\test\\server\\paths\\1.jpeg";
-
         sendfile->sndMsg();
     }else if(list[0] == "parallel"){
-        signal_recv =list[0];
         parallelStyle = list[1];
+    }else if(list[0] == "targetFile"){
+        fileName = list[1];
     }
     Perform_action();
 }
@@ -75,17 +70,12 @@ void Server::Perform_action()
         if(cmd){
               cmd->close();
         }*/
-        flag = 1;
-
-        cmd->start("C:\\longoutput.exe");
-        cmd->waitForStarted();
-        cmd->waitForFinished(-1);
-        qDebug() << temp;
 
         //本地测试
         //希望返回切片的层数
         //我这里发送的是假数据，将30改成每次切片的真正层数即可
-        msg_send = "Succeessful slicing,total 30 slice!";
+        flag = 1;
+        msg_send = "slice/30";
     }else if(signal_recv=="infill"){
         /*QStringList arguments;
         arguments <<"-c"<<"/home/zero/function/infill/build/infill -l 100 -s sparseInfillLineDistance=200";
@@ -97,25 +87,24 @@ void Server::Perform_action()
         if(cmd){
               cmd->close();
         }*/
-
         //本地测试
         //程序要设置为无缓冲输出，返回目前填充的层数即可
         //output为我在本地测试模拟路径填充的结果，输出1-30，步长为1，每秒一次。
         flag = 1;
         cmd->start("C:\\output.exe");
         cmd->waitForStarted();
-        msg_send = "start infill!";
+        msg_send = "path/start/";
         Send_action();
         bool returnBool = false;
         while (returnBool == false){
             returnBool = cmd->waitForFinished(2000);
-            if(!temp.contains(" ")){
-                temp = "path " + temp.left(temp.indexOf("\r\n"));
+            if(!temp.contains("/")){
+                temp = "path/progress/" + temp.left(temp.indexOf("\r\n"));
                 socket->write(temp.toLatin1());
                 socket->flush();
             }
         }
-        msg_send = "end infill!";
+        msg_send = "path/end/";
     }else if(signal_recv=="gcode"){
         //temp = "gcode";
         flag = 1;
@@ -150,6 +139,9 @@ void Server::Perform_action()
     }else if(signal_recv=="parallel"){
         flag = 1;
         msg_send = "Parallel Style is " + parallelStyle + " now!";
+    }else if(signal_recv=="targetFile"){
+        flag = 1;
+        msg_send = "targetFile/" + fileName;
     }
     Send_action();
     flag = 0;

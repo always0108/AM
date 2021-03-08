@@ -20,11 +20,12 @@ MainWindow::MainWindow(QWidget *parent)
     pathprogress = new Pathprogress();
     recvfile = new Recvfile();
     pathflag = false;
+    processnode = Processnode::INIT;
 
     setCentralWidget(showWidget);
     showWidget->textEdit_Recv->setText(" ");
     recvfile->Listen_action();
-    StatusSignal("Listen succeessfully!");
+    StatusSignal("端口已成功监听");
 
     connect(tcpclient->socket, &QTcpSocket::readyRead, this, &MainWindow::RecvSignal);
     createActions();
@@ -38,10 +39,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::createActions()
 {
-    openFileAction = new QAction("打开文件",this);
-    openFileAction->setStatusTip("打开文件");
-    sendFileAction = new QAction("发送文件",this);
-    sendFileAction->setStatusTip("发送文件");
+    openFileAction = new QAction("选择已有文件",this);
+    openFileAction->setStatusTip("选择已有文件");
+    sendFileAction = new QAction("添加新的文件",this);
+    sendFileAction->setStatusTip("添加新的文件");
 
     serverSettingAction = new QAction("服务器参数设置",this);
     printerSettingAction = new QAction("打印机参数设置",this);
@@ -73,12 +74,12 @@ void MainWindow::createActions()
     connect(serverSettingAction,&QAction::triggered,this,&MainWindow::ShowServer);
     connect(printerSettingAction,&QAction::triggered,this,&MainWindow::ShowPrintSettings);
     connect(connectSeverAction,&QAction::triggered,this,&MainWindow::ConnectServer);
-    connect(printSettingsAction, &QAction::triggered, this,[=](){SendSignal("printSettings/"+printsettings->getPrintSettings());});
-    connect(stratifyAction, &QAction::triggered, this,&MainWindow::ShowModelList);
+    connect(printSettingsAction, &QAction::triggered, this,&MainWindow::setPrintSettings);
+    connect(stratifyAction, &QAction::triggered, this,&MainWindow::sliceAction);
     connect(infillAction, &QAction::triggered, this,&MainWindow::ShowpathProgress);
-    connect(generateGcodeAction, &QAction::triggered, this,[=](){SendSignal("gcode/");});
-    connect(previewPathAction, &QAction::triggered, this,[=](){SendSignal("previewPath/"+QString::number(layerSpinBox->value()));});
-    connect(showpath, &QAction::triggered, this,[=](){Showpaths("D:\\layers\\"+QString::number(layerSpinBox->value()));});
+    connect(generateGcodeAction, &QAction::triggered, this,&MainWindow::gcodeAction);
+    connect(previewPathAction, &QAction::triggered, this,&MainWindow::getPreviewPathAction);
+    connect(showpath, &QAction::triggered, this,&MainWindow::Showpaths);
     connect(clearpath, &QAction::triggered, this,&MainWindow::Clearpaths);
     connect(cpuParalleAction,&QAction::triggered,this,&MainWindow::cpuParallelChecked);
     connect(gpuParalleAction,&QAction::triggered,this,&MainWindow::gpuParallelChecked);
@@ -139,7 +140,7 @@ void MainWindow::createToolBars()
 
 void MainWindow::cpuParallelChecked()
 {
-    if(tcpclient->getTcpStatus()){
+    if(getTcpStatus()){
         cpuParalleAction->setChecked(true);
         gpuParalleAction->setChecked(false);
         //向后台更新参数
@@ -147,13 +148,12 @@ void MainWindow::cpuParallelChecked()
     }else{
         //未连接服务器，还原原本的打勾状态
         cpuParalleAction->setChecked(!cpuParalleAction->isChecked());
-        QMessageBox::warning(NULL, "警告", "请先连接服务器", QMessageBox::Ok , QMessageBox::Ok);
     }
 }
 
 void MainWindow::gpuParallelChecked()
 {
-    if(tcpclient->getTcpStatus()){
+    if(getTcpStatus()){
         cpuParalleAction->setChecked(false);
         gpuParalleAction->setChecked(true);
         //向后台更新参数
@@ -161,44 +161,72 @@ void MainWindow::gpuParallelChecked()
     }else{
         //未连接服务器，还原原本的打勾状态
         gpuParalleAction->setChecked(!gpuParalleAction->isChecked());
-        QMessageBox::warning(NULL, "警告", "请先连接服务器", QMessageBox::Ok , QMessageBox::Ok);
     }
 }
 
-void MainWindow::ShowModelList()
+bool MainWindow::getTcpStatus()
 {
-    modellist = new ModelList();
-    modellist->initModelList(10);
-    modellist->exec();
-    delete modellist;
-    modellist = nullptr;
-    //SendSignal("slicing/"+QString::number(thickSpinBox->value()));
+    if(tcpclient->getTcpStatus()){
+        return true;
+    }else{
+        showMessageBox("请先连接服务器");
+        return false;
+    }
+}
+
+
+void MainWindow::sliceAction()
+{
+    if(getTcpStatus()  && processcheck(Processnode::CHOOSEFILE)){
+        SendSignal("slicing/"+QString::number(thickSpinBox->value()));
+    }
+}
+
+void MainWindow::gcodeAction()
+{
+    if(getTcpStatus()  && processcheck(Processnode::INFILL)){
+        SendSignal("gcode/");
+    }
+}
+
+void MainWindow::getPreviewPathAction()
+{
+    if(getTcpStatus()  && processcheck(Processnode::INFILL)){
+        SendSignal("previewPath/"+QString::number(layerSpinBox->value()));
+    }
+}
+
+void MainWindow::setPrintSettings()
+{   if(getTcpStatus()){
+        SendSignal("printSettings/"+printsettings->getPrintSettings());
+    }
 }
 
 void MainWindow::ShowOpenFile()
 {
-    QString s = QFileDialog::getOpenFileName(this,"open file dialog","/","STL files(*.STL);;stl files(*.stl)");
-    filename = s;
-    loadFile(filename);
-}
-
-void MainWindow::loadFile(QString filename)
-{
-    QFile file(filename);
-    if(file.open(QIODevice::ReadOnly))
-    {
-        QDataStream in(&file);
+    if(getTcpStatus() && processcheck(Processnode::INIT)){
+        modellist = new ModelList();
+        modellist->initModelList(10);
+        if(modellist->exec() == QDialog::Accepted){
+            filename = modellist->getTargetfile();
+            SendSignal("targetFile/" + filename);
+        }
+        delete modellist;
+        modellist = nullptr;
     }
 }
 
-void MainWindow::Showpaths(QString input)
+void MainWindow::Showpaths()
 {
-    QString input_layer, input_path;
-    input_layer = input + ".cli";
-    input_path = input + "path.cli";
-    showWidget->showpath->clearpath();
-    //showWidget->showpath->plotlayer(input_layer);
-    showWidget->showpath->plotpath(input_path);
+    if(getTcpStatus() && processcheck(Processnode::INFILL)){
+        QString input = "D:\\layers\\"+QString::number(layerSpinBox->value());
+        QString input_layer, input_path;
+        input_layer = input + ".cli";
+        input_path = input + "path.cli";
+        showWidget->showpath->clearpath();
+        //showWidget->showpath->plotlayer(input_layer);
+        showWidget->showpath->plotpath(input_path);
+    }
 }
 
 void MainWindow::Clearpaths()
@@ -208,40 +236,30 @@ void MainWindow::Clearpaths()
 
 void MainWindow::ShowServer()
 {
-   serversettings->exec();
+    serversettings->exec();
 }
 
 void MainWindow::ShowPrintSettings()
 {
-   printsettings->exec();
+    printsettings->exec();
 }
 
 void MainWindow::Showsend()
 {
-    if(tcpclient->getTcpStatus()){
+    if(getTcpStatus()){
         sendfile = new SendFile();
         sendfile->exec();
         sendfile->IP = serversettings->ip;
-    }else{
-        QMessageBox::warning(NULL, "警告", "请先连接服务器", QMessageBox::Ok , QMessageBox::Ok);
     }
 }
 
 void MainWindow::ShowpathProgress()
 {
-    if(tcpclient->getTcpStatus()){
-        if(pathflag){
-            pathprogress->setModal(true);
-            pathprogress->show();
-            SendSignal("infill/");
-            pathflag = false;
-        }else{
-            QMessageBox::warning(NULL, "警告", "请先进行分层", QMessageBox::Ok , QMessageBox::Ok);
-        }
-    }else{
-        QMessageBox::warning(NULL, "警告", "请先连接服务器", QMessageBox::Ok , QMessageBox::Ok);
+    if(getTcpStatus() && processcheck(Processnode::SLICE)){
+        pathprogress->setModal(true);
+        pathprogress->show();
+        SendSignal("infill/");
     }
-
 }
 
 void MainWindow::ConnectServer()
@@ -252,13 +270,13 @@ void MainWindow::ConnectServer()
         tcpclient->on_pushButton_Connect_clicked();
         if(tcpclient->getTcpStatus()){
             StatusClear();
-            StatusSignal("Server connected!");
+            StatusSignal("服务器已连接");
         }else{
-            QMessageBox::warning(NULL, "警告", "服务器连接超时", QMessageBox::Ok , QMessageBox::Ok);
+            showMessageBox("服务器连接超时");
         }
     }else{
         tcpclient->socket_Disconnected();
-        StatusSignal("Server disconnected!");
+        StatusSignal("服务器连接已断开");
     }
 }
 
@@ -266,11 +284,9 @@ void MainWindow::ConnectServer()
 // 向服务端发送消息
 void MainWindow::SendSignal(QString msg)
 {
-    if(tcpclient->getTcpStatus()){
+    if(getTcpStatus()){
         tcpclient->msg_send = msg;
         tcpclient->on_pushButton_Send_clicked();
-    }else{
-        QMessageBox::warning(NULL, "警告", "请先连接服务器", QMessageBox::Ok , QMessageBox::Ok);
     }
 }
 
@@ -278,29 +294,40 @@ void MainWindow::SendSignal(QString msg)
 void MainWindow::RecvSignal()
 {
    if(tcpclient->msg_flag!=0){
-       if(tcpclient->msg_recv=="Succeessful Pathplanning!"){
-            tcpclient->msg_send = "paths/"+QString::number(layerSpinBox->value());
-            tcpclient->on_pushButton_Send_clicked();
-            StatusSignal("Succeessful Receive Polygon!");
-       }else if(tcpclient->msg_recv.left(4)=="path"){
-            QStringList list= tcpclient->msg_recv.split(" ");
-            pathprogress->log("正在对"+ list[list.size()-1] +"层进行填充 , 请稍候 !");
-            pathprogress->updateProgress(list[list.size()-1].toInt());
-       }
-       // 若返回切片的层数
-       else if(tcpclient->msg_recv.contains("total")){
-           QStringList list= tcpclient->msg_recv.split(" ");
-           QString tips = "当前层（最大" + list[list.size() - 2] + "）";
-           layernum->setText(tips);
-           layermax = list[list.size() - 2].toInt();
-           layerSpinBox->setRange(1, layermax);
-           pathprogress->initProgress(layermax);
-           pathprogress->log("开始准备进行填充 , 总共有"+ list[list.size() - 2] +"层 ! ");
-           pathflag = true;
-           StatusSignal(tcpclient->msg_recv);
-        }
-       else{
-           StatusSignal(tcpclient->msg_recv);
+       if(tcpclient->msg_recv.contains("/")){
+           QStringList list = tcpclient->msg_recv.split("/");
+           // 若返回切片的层数
+           if(list[0]=="slice"){
+               QString tips = "当前层（最大" + list[1] + "）";
+               layernum->setText(tips);
+               layerSpinBox->setRange(1, list[1].toInt());
+               pathprogress->initProgress(list[1].toInt());
+               pathprogress->log("开始准备进行填充 , 总共有"+ list[1] +"层 ! ");
+               processnode = Processnode::SLICE;
+               StatusSignal("切片完成 , 总共有" + list[1] + "层 !");
+           }else if(list[0] == "path"){
+               if(list[1] == "progress"){
+                   pathprogress->log("正在对"+ list[2] +"层进行填充 , 请稍候 !");
+                   pathprogress->updateProgress(list[2].toInt());
+               }else if(list[1] == "start"){
+                   StatusSignal("开始进行路径填充");
+               }else if(list[1] == "end"){
+                   processnode = Processnode::INFILL;
+                   StatusSignal("路径填充已经结束");
+               }
+           }else if(list[0] == "targetFile"){
+               processnode = Processnode::CHOOSEFILE;
+               StatusSignal("目标文件已设置为 " + list[1]);
+           }
+       }else{
+           if(tcpclient->msg_recv=="Succeessful Pathplanning!"){
+                tcpclient->msg_send = "paths/"+QString::number(layerSpinBox->value());
+                tcpclient->on_pushButton_Send_clicked();
+                StatusSignal("Succeessful Receive Polygon!");
+           }
+           else{
+               StatusSignal(tcpclient->msg_recv);
+           }
        }
    }
 }
@@ -318,6 +345,30 @@ void MainWindow::StatusClear()
 {
     showWidget->textEdit_Recv->clear();
 }
+
+bool MainWindow::processcheck(Processnode process)
+{
+    if(processnode < process){
+        QString msg;
+        if(processnode == Processnode::INIT){
+            msg = "请选择已有文件";
+        }else if(processnode == Processnode::CHOOSEFILE){
+            msg = "请进行分层操作";
+        }else if(processnode == Processnode::SLICE){
+            msg = "请进行路径填充";
+        }
+        showMessageBox(msg);
+        return false;
+    }else{
+        return true;
+    }
+}
+
+void MainWindow::showMessageBox(QString msg)
+{
+    QMessageBox::warning(NULL, "警告", msg, QMessageBox::Ok , QMessageBox::Ok);
+}
+
 
 
 

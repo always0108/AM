@@ -24,6 +24,9 @@
 #include "pathprogress.h"
 #include "modellist.h"
 
+//枚举类型，记录几个阶段 1.选择模型 2.分层 3.路径填充 4.其他操作
+enum class Processnode{INIT,CHOOSEFILE,SLICE,INFILL,OTHERS};
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -35,7 +38,6 @@ public:
     void createActions();
     void createMenus();
     void createToolBars();
-    void loadFile(QString filename);
     void mergeFormat(QTextCharFormat);
 private:
     QMenu *fileMenu;
@@ -83,7 +85,7 @@ private:
     QString IP;
     bool pathflag;
     quint16 port;
-    quint16 layermax;
+    Processnode processnode;
     Serversettings *serversettings;
     Printsettings *printsettings;
     Pathprogress *pathprogress;
@@ -97,9 +99,13 @@ private:
 protected slots:
     void cpuParallelChecked();
     void gpuParallelChecked();
-    void ShowModelList();
+    bool getTcpStatus();
+    void sliceAction();
+    void gcodeAction();
+    void getPreviewPathAction();
+    void setPrintSettings();
     void ShowOpenFile();
-    void Showpaths(QString input);
+    void Showpaths();
     void ShowpathProgress();
     void Clearpaths();
     void ShowServer();
@@ -110,5 +116,7 @@ protected slots:
     void RecvSignal();
     void StatusSignal(QString msg);
     void StatusClear();
+    bool processcheck(Processnode process);
+    void showMessageBox(QString msg);
 };
 #endif // MAINWINDOW_H

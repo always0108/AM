@@ -60,6 +60,7 @@ void ModelList::initModelList(int size)
     mainLayout->setMargin(5);
     mainLayout->setSpacing(5);
     connect(tableView,SIGNAL(doubleClicked(const QModelIndex &)),this,SLOT(choosefile(const QModelIndex &)));
+    connect(confirmBtn,SIGNAL(clicked()),this,SLOT(onClicked()));
 }
 
 void ModelList::choosefile(const QModelIndex &index)
@@ -68,4 +69,14 @@ void ModelList::choosefile(const QModelIndex &index)
     QStandardItem *item = model->item(index.row(),0);
     filename->setText(item->text());
     confirmBtn->setEnabled(true);
+}
+
+void ModelList::onClicked()
+{
+    this->accept();
+}
+
+QString ModelList::getTargetfile()
+{
+    return filename->text();
 }

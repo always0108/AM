@@ -27,8 +27,10 @@ private:
     QHBoxLayout *noteLayout;
 private slots:
     void choosefile(const QModelIndex &index);
+    void onClicked();
 public slots:
     void initModelList(int size);
+    QString getTargetfile();
 
 };
 
