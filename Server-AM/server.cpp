@@ -12,6 +12,8 @@ Server::Server(QWidget *parent) : QTcpServer(parent)
     server = new QTcpServer();
     cmd = new QProcess();
     sendfile = new SendFile();
+    sqlAction = new SqlAction();
+    sqlAction->init();
 
     connect(server,&QTcpServer::newConnection,this,&Server::server_New_Connect);
     connect(cmd,&QProcess::readyReadStandardOutput, this, &Server::on_readoutput);
@@ -32,8 +34,7 @@ void Server::Messageclassify()
 {
     QStringList list = msg_recv.split("/");
     signal_recv =list[0];
-    if(list[0]=="infill"||list[0]=="gcode"){
-    }else if(list[0]=="previewPath"){
+    if(list[0]=="previewPath"){
         layer_nr = list[1].toInt();
     }else if(list[0]=="slicing"){
         thickness = list[1].toDouble();
@@ -142,6 +143,17 @@ void Server::Perform_action()
     }else if(signal_recv=="targetFile"){
         flag = 1;
         msg_send = "targetFile/" + fileName;
+    }else if(signal_recv=="getFileList"){
+        flag = 1;
+        QList<MyFile> list = sqlAction->getFilesList();
+        QList<MyFile>::iterator listIterator = list.begin();
+        msg_send = "file/" + QString::number(list.size(),10) + "/";
+        while(listIterator != list.end()){
+            msg_send = msg_send + listIterator->getName() + "|" + listIterator->getTime() + "\\";
+            listIterator++;
+        }
+        Send_action();
+        flag = 0;
     }
     Send_action();
     flag = 0;

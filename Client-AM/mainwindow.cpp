@@ -205,14 +205,7 @@ void MainWindow::setPrintSettings()
 void MainWindow::ShowOpenFile()
 {
     if(getTcpStatus() && processcheck(Processnode::INIT)){
-        modellist = new ModelList();
-        modellist->initModelList(10);
-        if(modellist->exec() == QDialog::Accepted){
-            filename = modellist->getTargetfile();
-            SendSignal("targetFile/" + filename);
-        }
-        delete modellist;
-        modellist = nullptr;
+        SendSignal("getFileList/");
     }
 }
 
@@ -318,6 +311,22 @@ void MainWindow::RecvSignal()
            }else if(list[0] == "targetFile"){
                processnode = Processnode::CHOOSEFILE;
                StatusSignal("目标文件已设置为 " + list[1]);
+           }else if(list[0] == "file"){
+               //StatusSignal(tcpclient->msg_recv);
+               modellist = new ModelList();
+               int size = list[1].toInt();
+               modellist->initModelList(size);
+               QStringList filelist = list[2].split("\\");
+               for(int i = 0; i < size; i++){
+                   QStringList tmp = filelist[i].split("|");
+                   modellist->insertData(tmp[0],tmp[1]);
+               }
+               if(modellist->exec() == QDialog::Accepted){
+                   filename = modellist->getTargetfile();
+                   SendSignal("targetFile/" + filename);
+               }
+               delete modellist;
+               modellist = nullptr;
            }
        }else{
            if(tcpclient->msg_recv=="Succeessful Pathplanning!"){

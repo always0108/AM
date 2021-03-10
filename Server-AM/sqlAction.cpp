@@ -37,14 +37,13 @@ void SqlAction::insert(QString filename)
     }
 }
 
-void SqlAction::getFilesList()
+QList<MyFile> SqlAction::getFilesList()
 {
     query.exec("SELECT name,time FROM file ORDER BY name;");
-        while(query.next()){
-            QString name = query.value(0).toString();
-            QString time = query.value(1).toString();
-            qDebug() << name << time;
-        }
+    QList<MyFile> lists;
+    while(query.next())
+        lists.push_back(MyFile(query.value(0).toString(),query.value(1).toString()));
+    return lists;
 }
 
 void SqlAction::update(QString filename)

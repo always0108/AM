@@ -25,13 +25,14 @@ private:
     QPushButton *confirmBtn;
     QGridLayout *mainLayout;
     QHBoxLayout *noteLayout;
+    int count;
 private slots:
     void choosefile(const QModelIndex &index);
     void onClicked();
 public slots:
     void initModelList(int size);
     QString getTargetfile();
-
+    void insertData(QString name , QString time);
 };
 
 #endif // MODELLIST_H

@@ -13,7 +13,7 @@ void ModelList::initModelList(int size)
     tableView = new QTableView();
     model = new QStandardItemModel();
     /* 设置列数 */
-    model->setColumnCount(1);
+    model->setColumnCount(2);
     /* 设置行数 */
     model->setRowCount(size);
     tableView->setModel(model);
@@ -42,9 +42,7 @@ void ModelList::initModelList(int size)
       "QScrollBar::handle:hover{background:gray;}"
       "QScrollBar::sub-line{background:transparent;}"
       "QScrollBar::add-line{background:transparent;}");
-    for(int i = 0; i < size; i++){
-        model->setItem(i, 0, new QStandardItem("model" + QString::number(i+1,10) + ".stl"));
-    }
+    count = 0;
     choosenote = new QLabel("未选择文件");
     filename = new QLabel("");
     noteLayout = new QHBoxLayout();
@@ -79,4 +77,11 @@ void ModelList::onClicked()
 QString ModelList::getTargetfile()
 {
     return filename->text();
+}
+
+void ModelList::insertData(QString name , QString time)
+{
+     model->setItem(count, 0, new QStandardItem(name));
+     model->setItem(count, 1, new QStandardItem(time));
+     count++;
 }

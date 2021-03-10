@@ -6,6 +6,7 @@
 #include <QTcpSocket>
 #include <QProcess>
 #include "sendfile.h"
+#include "SqlAction.h"
 
 class Server : public QTcpServer
 {
@@ -36,6 +37,7 @@ private:
     int port;
     QTcpServer* server;
     QTcpSocket* socket;
+    SqlAction *sqlAction;
 
     QString path;
 

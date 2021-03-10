@@ -14,7 +14,8 @@ SOURCES += \
         recvfile.cpp \
         sendfile.cpp \
         server.cpp \
-    SqlAction.cpp
+        SqlAction.cpp \
+        myfile.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -25,4 +26,5 @@ HEADERS += \
         recvfile.h \
         sendfile.h \
         server.h \
-    SqlAction.h
+        SqlAction.h \
+        myfile.h

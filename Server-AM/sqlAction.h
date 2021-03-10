@@ -7,6 +7,8 @@
 #include <QSqlQuery>
 #include <QApplication>
 #include <QDateTime>
+#include <QList>
+#include "myfile.h"
 
 class SqlAction
 {
@@ -14,7 +16,7 @@ public:
     SqlAction();
     bool init();
     void insert(QString filename);
-    void getFilesList();
+    QList<MyFile> getFilesList();
 
 private:
     QSqlDatabase db;
