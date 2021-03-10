@@ -17,7 +17,7 @@ class SendFile : public QDialog
     Q_OBJECT
 public:
     explicit SendFile(QDialog *parent = nullptr);
-
+    ~SendFile();
     void initSrv();
     QString IP = "127.0.0.1";
     int tPort = 8011;

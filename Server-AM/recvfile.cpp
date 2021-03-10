@@ -12,19 +12,22 @@ Recvfile::Recvfile(QObject *parent) : QTcpServer(parent)
     Revserver = new QTcpServer();
     tClnt = new QTcpSocket();
     connect(Revserver,&QTcpServer::newConnection,this,&Recvfile::newConn);
+}
 
+Recvfile::~Recvfile()
+{
+    delete Revserver;
+    delete tClnt;
 }
 
 void Recvfile::Listen_action()
 {
     if(!Revserver->listen(QHostAddress::Any, tPort))
     {
-        //若出错，则输出错误信息
         qDebug()<<Revserver->errorString();
         return;
     }
-    //qDebug()<< "Listen succeessfully!";
-
+    qDebug()<< "File socket listen succeessfully!";
 }
 
 void Recvfile::newConn()
@@ -44,43 +47,38 @@ void Recvfile::readMsg()
 {
     QDataStream in(tClnt);
     in.setVersion(QDataStream::Qt_5_12);
-    if(bytesReceived <= sizeof(qint64)*2)
-    {
-        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize==0))
-        {
-            in>>totalBytes>>fileNameSize;
+    if(bytesReceived <= sizeof(qint64)*2){
+        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize==0)){
+            in >> totalBytes >> fileNameSize;
             bytesReceived += sizeof(qint64)*2;
         }
-        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize!=0))
-        {
-            in>>fileName;
-            fileName = "/home/zero/function/model/"+fileName;
-
+        if((tClnt->bytesAvailable() >= fileNameSize) && (fileNameSize != 0)){
+            in >> fileName;
             //本地测试
-            //fileName = "C:\\test\\server\\model\\"+fileName;
-            locFile = new QFile(fileName);
+            QString filePath = "C:\\test\\server\\model\\"+fileName;
+            locFile = new QFile(filePath);
             bytesReceived += fileNameSize;
-            if(!locFile->open(QFile::WriteOnly))
-            {
-                //qDebug() <<"fail file";
+            if(!locFile->open(QFile::WriteOnly)){
                 return;
             }
         }else{
             return;
         }
     }
-    if(bytesReceived<totalBytes)
-    {
+    if(bytesReceived < totalBytes){
         bytesReceived += tClnt->bytesAvailable();
         inBlock = tClnt->readAll();
         locFile->write(inBlock);
         inBlock.resize(0);
     }
-    if(bytesReceived==totalBytes)
-    {
+    if(bytesReceived == totalBytes){
         locFile->close();
         tClnt->close();
-        //qDebug() <<"file success";
+        sqlAction->insert(fileName);
     }
+}
 
+void Recvfile::setDatabase(SqlAction *sqlAction)
+{
+    this->sqlAction = sqlAction;
 }

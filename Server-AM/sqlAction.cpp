@@ -13,7 +13,7 @@ bool SqlAction::init()
         qDebug() << "Error:  Fail to connect database!";
         return false;
     }
-    qDebug() << "Connect database success";
+    qDebug() << "Connect database succeessfully!";
     query = QSqlQuery(db);
     createTable();
     return true;

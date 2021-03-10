@@ -54,6 +54,12 @@ SendFile::SendFile(QDialog *parent) : QDialog(parent)
     initSrv();
 }
 
+SendFile::~SendFile()
+{
+    delete tSrv;
+    delete locFile;
+}
+
 void SendFile::initSrv()
 {
     payloadSize = 64*1024;
@@ -67,6 +73,8 @@ void SendFile::initSrv()
     sendbtn->setEnabled(false);
     tSrv->close();
 }
+
+
 
 // 发送文件
 void SendFile::sndMsg()

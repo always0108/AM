@@ -13,7 +13,13 @@ Recvfile::Recvfile(QObject *parent) : QTcpServer(parent)
     Revserver = new QTcpServer();
     tClnt = new QTcpSocket();
     connect(Revserver,&QTcpServer::newConnection,this,&Recvfile::newConn);
+}
 
+Recvfile::~Recvfile()
+{
+    delete Revserver;
+    delete tClnt;
+    delete locFile;
 }
 
 void Recvfile::Listen_action()

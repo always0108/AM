@@ -34,67 +34,74 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
     void createActions();
     void createMenus();
     void createToolBars();
     void mergeFormat(QTextCharFormat);
 private:
+    /**菜单栏**/
     QMenu *fileMenu;
     QMenu *settingMenu;
-    //QMenu *showMenu;
     QMenu *parallelMenu;
-
     /**文件菜单项**/
     QAction *openFileAction;
     QAction *sendFileAction;
     /**设置菜单项**/
-    //QAction *settingAction;
     QAction *serverSettingAction;
-    QAction *modelSettingAction;
-    /**显示菜单项**/
-    //QAction *showAction;
-    QAction *modelShowAction;
-    QAction *pathShowAction;
+    QAction *printerSettingAction;
     /**并行菜单项**/
-    //QAction *paralleAction;
     QAction *cpuParalleAction;
     QAction *gpuParalleAction;
+
     /****工具栏****/
     QToolBar *functionTool;
-    //QToolBar *modelTool;
     QToolBar *pathTool;
-    /*******功能*********/
-    QAction *stratifyAction;
-    QAction *previewPathAction;
-    QAction *infillAction;
-    QAction *generateGcodeAction;
-    QAction *connectSeverAction;
-    QAction *printerSettingAction;
-    QAction *printSettingsAction;
-    QAction *showmodel;
-    QAction *showpath;
-    QAction *clearpath;
 
+    /*******功能*********/
+    //连接或断开服务器
+    QAction *connectSeverAction;
+    //打印参数设置
+    QAction *printSettingsAction;
+    //分层
+    QAction *stratifyAction;
+    //填充
+    QAction *infillAction;
+    //Gcode生成
+    QAction *generateGcodeAction;
+    //路径规划
+    QAction *previewPathAction;
+    //显示路径
+    QAction *showpath;
+    //清空
+    QAction *clearpath;
+    //当前层
     QSpinBox *layerSpinBox;
+    QLabel *layernum;
+    //层厚
     QDoubleSpinBox *thickSpinBox;
     QLabel *thicklayer;
-    QLabel *layernum;
 
-    QString filename;
-    QString IP;
-    bool pathflag;
-    quint16 port;
+    //操作流程进度
     Processnode processnode;
+    //服务器与打印参数设置界面
     Serversettings *serversettings;
     Printsettings *printsettings;
+    //目标文件
+    QString filename;
+    QString IP;
+    //IP地址与端口
+    quint16 port;
+    //进度条
     Pathprogress *pathprogress;
+    //文件列表界面
     ModelList *modellist;
+    //TCP交互
     Tcpclient *tcpclient;
+    //状态输出栏
     ShowWidget *showWidget;
+    //收发文件
     SendFile *sendfile;
     Recvfile *recvfile;
-
 
 protected slots:
     void cpuParallelChecked();

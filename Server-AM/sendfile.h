@@ -17,7 +17,7 @@ class SendFile : public QWidget
     Q_OBJECT
 public:
     explicit SendFile(QWidget *parent = nullptr);
-
+    ~SendFile();
     QString IP;
     QString fileName;
     quint16 tPort = 8012;

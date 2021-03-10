@@ -16,6 +16,12 @@ SendFile::SendFile(QWidget *parent) : QWidget(parent)
     initSrv();
 }
 
+SendFile::~SendFile()
+{
+    delete tSrv;
+    delete locFile;
+}
+
 void SendFile::initSrv()
 {
     payloadSize = 64*1024;

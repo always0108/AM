@@ -12,7 +12,6 @@ ShowWidget::ShowWidget(QWidget *parent) : QWidget(parent)
     showpath = new Showpath(this);
     showpath->qwtPlot->resize(420,700);
 
-
     QVBoxLayout *rightLayout = new QVBoxLayout();
     rightLayout->setSpacing(10);
     rightLayout->addWidget(showpath->qwtPlot);
@@ -27,5 +26,4 @@ ShowWidget::ShowWidget(QWidget *parent) : QWidget(parent)
     mainLayout->addLayout(rightLayout,0,1);
     mainLayout->setColumnStretch(0,1);
     mainLayout->setColumnStretch(1,1);
-    //mainLayout->setSizeConstraint(QLayout::SetFixedSize);
 }

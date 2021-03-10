@@ -21,7 +21,6 @@ public:
     QChartView* chartViewtmp;
     showmodel* showModel;
 
-
 signals:
 
 };

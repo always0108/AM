@@ -14,11 +14,10 @@ class Recvfile : public QTcpServer
     Q_OBJECT
 public:
     explicit Recvfile(QObject *parent = nullptr);
+    ~Recvfile();
     void setFileName(QString name);
     void Listen_action();
-protected:
-    //void closeEvent(QCloseEvent *event);
-public:
+private:
     QTcpServer *Revserver;
     QTcpSocket *tClnt;
     quint16 blockSize;
@@ -37,10 +36,6 @@ private slots:
     void newConn();
     // 读取消息
     void readMsg();
-    //void displayErr(QAbstractSocket::SocketError);
-
-signals:
-
 };
 
 #endif // RECVFILE_H

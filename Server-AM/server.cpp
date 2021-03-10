@@ -8,13 +8,31 @@
 
 Server::Server(QWidget *parent) : QTcpServer(parent)
 {
+
+}
+
+Server::~Server()
+{
+    delete server;
+    delete cmd;
+    delete sendfile;
+    delete sqlAction;
+    delete server_file;
+}
+
+void Server::init()
+{
     port = 8010;
     server = new QTcpServer();
     cmd = new QProcess();
+    Listen_action();
     sendfile = new SendFile();
     sqlAction = new SqlAction();
     sqlAction->init();
-
+    server_file = new Recvfile();
+    server_file->Listen_action();
+    server_file->setDatabase(sqlAction);
+    qDebug()<< "Server init work is already!";
     connect(server,&QTcpServer::newConnection,this,&Server::server_New_Connect);
     connect(cmd,&QProcess::readyReadStandardOutput, this, &Server::on_readoutput);
     connect(cmd,&QProcess::readyReadStandardError, this, &Server::on_readerror);
@@ -27,7 +45,7 @@ void Server::Listen_action()
         qDebug()<<server->errorString();
         return;
     }
-    qDebug()<< "Listen succeessfully!";
+    qDebug()<< "Service socket listen succeessfully!";
 }
 
 void Server::Messageclassify()

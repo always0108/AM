@@ -4,30 +4,30 @@
 #include <QDataStream>
 #include <QGridLayout>
 
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
+    //设置标题
     setWindowTitle("3D打印切片软件");
 
-   /***创建动作，菜单，工具栏*****/
-    thicklayer = new QLabel("层厚(mm):");
-    layernum = new QLabel("当前层:");
+    //创建所需对象
     tcpclient = new Tcpclient();
-    showWidget =new ShowWidget(this);
+    showWidget = new ShowWidget(this);
     serversettings = new Serversettings();
     printsettings = new Printsettings();
     pathprogress = new Pathprogress();
     recvfile = new Recvfile();
-    pathflag = false;
     processnode = Processnode::INIT;
 
+    //初始化状态输出栏
     setCentralWidget(showWidget);
-    showWidget->textEdit_Recv->setText(" ");
+    StatusClear();
+
+    //监听接收文件socket
     recvfile->Listen_action();
+    connect(tcpclient->socket, &QTcpSocket::readyRead, this, &MainWindow::RecvSignal);
     StatusSignal("端口已成功监听");
 
-    connect(tcpclient->socket, &QTcpSocket::readyRead, this, &MainWindow::RecvSignal);
     createActions();
     createMenus();
     createToolBars();
@@ -35,33 +35,36 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    delete tcpclient;
+    delete showWidget;
+    delete serversettings;
+    delete printsettings;
+    delete pathprogress;
+    delete recvfile;
 }
 
 void MainWindow::createActions()
 {
+    //菜单栏
     openFileAction = new QAction("选择已有文件",this);
-    openFileAction->setStatusTip("选择已有文件");
     sendFileAction = new QAction("添加新的文件",this);
-    sendFileAction->setStatusTip("添加新的文件");
-
     serverSettingAction = new QAction("服务器参数设置",this);
     printerSettingAction = new QAction("打印机参数设置",this);
     cpuParalleAction = new QAction("CPU加速",this);
+    gpuParalleAction = new QAction("GPU加速",this);
     cpuParalleAction->setCheckable(true);
     cpuParalleAction->setChecked(true);
-    gpuParalleAction = new QAction("GPU加速",this);
     gpuParalleAction->setCheckable(true);
-    pathShowAction = new QAction("路径显示",this);
-    stratifyAction = new QAction("分层",this);
-    previewPathAction = new QAction("路径规划",this);
-    infillAction = new QAction("路径填充",this);
-    generateGcodeAction = new QAction("生成G代码",this);
+
+    //工具栏
     connectSeverAction = new QAction("连接/断开服务器",this);
     printSettingsAction = new QAction("更新打印参数",this);
-    showmodel = new QAction("显示模型",this);
+    stratifyAction = new QAction("分层",this);
+    previewPathAction = new QAction("路径规划",this);
+    generateGcodeAction = new QAction("生成G代码",this);
+    infillAction = new QAction("路径填充",this);
     showpath = new QAction("显示路径",this);
     clearpath = new QAction("清空",this);
-
     layerSpinBox = new QSpinBox();
     layerSpinBox->setRange(1, 50000);
     layerSpinBox->setValue(1);
@@ -94,12 +97,6 @@ void MainWindow::createMenus()
     settingMenu = menuBar()->addMenu("设置");
     settingMenu->addAction(serverSettingAction);
     settingMenu->addAction(printerSettingAction);
-    //settingMenu->addAction(modelSettingAction);
-    //settingMenu->setFixedSize(200,50);
-
-    //showMenu = menuBar()->addMenu("显示");
-    //showMenu->addAction(modelShowAction);
-    //showMenu->addAction(pathShowAction);
 
     parallelMenu = menuBar()->addMenu("并行");
     parallelMenu->addAction(cpuParalleAction);
@@ -108,34 +105,27 @@ void MainWindow::createMenus()
 
 void MainWindow::createToolBars()
 {
+    //左侧工具栏
     functionTool = addToolBar("功能");
+    functionTool->addAction(connectSeverAction);
+    functionTool->addAction(printSettingsAction);
     functionTool->addAction(stratifyAction);
     functionTool->addAction(infillAction);
     functionTool->addAction(generateGcodeAction);
-    functionTool->addAction(connectSeverAction);
-    functionTool->addAction(printSettingsAction);
     functionTool->setAllowedAreas(Qt::RightToolBarArea);
     functionTool->setFixedHeight(50);
 
-    //modelTool = addToolBar("模型");
-    //modelTool->setAllowedAreas(Qt::LeftToolBarArea);
-
+    //右侧工具栏
     pathTool = addToolBar("路径");
-    //pathTool->addAction(showmodel);
+    pathTool->addAction(previewPathAction);
     pathTool->addAction(showpath);
     pathTool->addAction(clearpath);
-    pathTool->addAction(previewPathAction);
-    QLabel *tmplabel = new QLabel();
-    tmplabel->setFixedWidth(10);
-    //pathTool->addWidget(tmplabel);
+    layernum = new QLabel("当前层:");
     pathTool->addWidget(layernum);
     pathTool->addWidget(layerSpinBox);
-    QLabel *tmplabel2 = new QLabel();
-    tmplabel2->setFixedWidth(15);
-    pathTool->addWidget(tmplabel2);
+    thicklayer = new QLabel("  层厚(mm):");
     pathTool->addWidget(thicklayer);
     pathTool->addWidget(thickSpinBox);
-    pathTool->addAction(previewPathAction);
 }
 
 void MainWindow::cpuParallelChecked()
@@ -222,6 +212,15 @@ void MainWindow::Showpaths()
     }
 }
 
+void MainWindow::ShowpathProgress()
+{
+    if(getTcpStatus() && processcheck(Processnode::SLICE)){
+        pathprogress->setModal(true);
+        pathprogress->show();
+        SendSignal("infill/");
+    }
+}
+
 void MainWindow::Clearpaths()
 {
     showWidget->showpath->clearpath();
@@ -241,17 +240,10 @@ void MainWindow::Showsend()
 {
     if(getTcpStatus()){
         sendfile = new SendFile();
-        sendfile->exec();
         sendfile->IP = serversettings->ip;
-    }
-}
-
-void MainWindow::ShowpathProgress()
-{
-    if(getTcpStatus() && processcheck(Processnode::SLICE)){
-        pathprogress->setModal(true);
-        pathprogress->show();
-        SendSignal("infill/");
+        sendfile->exec();
+        delete sendfile;
+        sendfile = nullptr;
     }
 }
 

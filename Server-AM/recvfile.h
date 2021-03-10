@@ -8,17 +8,19 @@
 #include <QCloseEvent>
 #include <QTcpSocket>
 #include <QTcpServer>
+#include "sqlAction.h"
 
 class Recvfile : public QTcpServer
 {
     Q_OBJECT
 public:
     explicit Recvfile(QObject *parent = nullptr);
+    ~Recvfile();
     void setFileName(QString name);
+    void setDatabase(SqlAction *sqlAction);
     void Listen_action();
-protected:
-    //void closeEvent(QCloseEvent *event);
-public:
+
+private:
     QTcpServer *Revserver;
     QTcpSocket *tClnt;
     quint16 blockSize;
@@ -31,10 +33,11 @@ public:
     QFile *locFile;
     QByteArray inBlock;
     QTime time;
+    SqlAction *sqlAction;
+
 private slots:
     void newConn();
     void readMsg();
-    //void displayErr(QAbstractSocket::SocketError);
 
 signals:
 

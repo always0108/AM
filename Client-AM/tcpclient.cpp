@@ -8,6 +8,11 @@ Tcpclient::Tcpclient(QObject *parent) : QTcpSocket(parent)
     connect(socket, &QTcpSocket::disconnected, this, &Tcpclient::disconnectedFromHost);
 }
 
+Tcpclient::~Tcpclient()
+{
+    delete socket;
+}
+
 void Tcpclient::on_pushButton_Connect_clicked()
 {
       //取消已有的连接
