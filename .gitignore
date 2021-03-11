@@ -1,2 +1,4 @@
 # 用户配置文件
 *.pro.user*
+# MAC OS下的隐藏文件
+.DS_Store
