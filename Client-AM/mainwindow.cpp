@@ -11,12 +11,12 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("3D打印切片软件");
 
     //创建所需对象
-    tcpclient = new Tcpclient();
     showWidget = new ShowWidget(this);
+    recvfile = new Recvfile();
+    tcpclient = new Tcpclient();
     serversettings = new Serversettings();
     printsettings = new Printsettings();
     pathprogress = new Pathprogress();
-    recvfile = new Recvfile();
     processnode = Processnode::INIT;
 
     //初始化状态输出栏
@@ -35,12 +35,12 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    //没有指定父对象并且没有添加到界面显示的，需要手动释放
+    delete recvfile;
     delete tcpclient;
-    delete showWidget;
     delete serversettings;
     delete printsettings;
     delete pathprogress;
-    delete recvfile;
 }
 
 void MainWindow::createActions()
@@ -168,7 +168,7 @@ bool MainWindow::getTcpStatus()
 void MainWindow::sliceAction()
 {
     if(getTcpStatus()  && processcheck(Processnode::CHOOSEFILE)){
-        SendSignal("slicing/"+QString::number(thickSpinBox->value()));
+        SendSignal("slicing/" + QString::number(thickSpinBox->value()));
     }
 }
 
@@ -182,13 +182,20 @@ void MainWindow::gcodeAction()
 void MainWindow::getPreviewPathAction()
 {
     if(getTcpStatus()  && processcheck(Processnode::INFILL)){
-        SendSignal("previewPath/"+QString::number(layerSpinBox->value()));
+        SendSignal("previewPath/" + QString::number(layerSpinBox->value()));
     }
 }
 
 void MainWindow::setPrintSettings()
 {   if(getTcpStatus()){
-        SendSignal("printSettings/"+printsettings->getPrintSettings());
+        SendSignal("printSettings/" + printsettings->getPrintSettings());
+    }
+}
+
+void  MainWindow::getPathsAction()
+{
+    if(getTcpStatus()  && processcheck(Processnode::INFILL)){
+        SendSignal("paths/" + QString::number(layerSpinBox->value()));
     }
 }
 
@@ -202,13 +209,19 @@ void MainWindow::ShowOpenFile()
 void MainWindow::Showpaths()
 {
     if(getTcpStatus() && processcheck(Processnode::INFILL)){
-        QString input = "D:\\layers\\"+QString::number(layerSpinBox->value());
-        QString input_layer, input_path;
-        input_layer = input + ".cli";
-        input_path = input + "path.cli";
-        showWidget->showpath->clearpath();
-        //showWidget->showpath->plotlayer(input_layer);
-        showWidget->showpath->plotpath(input_path);
+        QString input = "C:\\test\\client\\layers\\" + QString::number(layerSpinBox->value());
+        QString input_path = input + "path.cli";
+        // 目前感觉这个逻辑上还是有些问题，有可能不是最新的文件
+        // 有待商榷
+        if(fileExist(input_path.toStdString())){
+            showWidget->showpath->clearpath();
+            showWidget->showpath->plotpath(input_path);
+            StatusSignal("路径已展示");
+        }else{
+            //去服务端获取文件
+            StatusSignal("本地文件不存在 , 正在从服务器获取");
+            getPathsAction();
+        }
     }
 }
 
@@ -304,7 +317,6 @@ void MainWindow::RecvSignal()
                processnode = Processnode::CHOOSEFILE;
                StatusSignal("目标文件已设置为 " + list[1]);
            }else if(list[0] == "file"){
-               //StatusSignal(tcpclient->msg_recv);
                modellist = new ModelList();
                int size = list[1].toInt();
                modellist->initModelList(size);
@@ -319,16 +331,22 @@ void MainWindow::RecvSignal()
                }
                delete modellist;
                modellist = nullptr;
+           }else if(list[0] == "previewPath"){
+               StatusSignal("路径规划完成");
+               getPathsAction();
+           }else if(list[0] == "paths"){
+               if(list[1] == "ok"){
+                   Showpaths();
+               }else if(list[1] == "fail"){
+                   showMessageBox("没有该层的路径文件");
+               }
+           }else if(list[0] == "parallel"){
+               StatusSignal("加速方式已设置为" + list[1].toUpper() + "加速");
+           }else if(list[0] == "printSettings"){
+               StatusSignal("打印参数设置成功");
            }
        }else{
-           if(tcpclient->msg_recv=="Succeessful Pathplanning!"){
-                tcpclient->msg_send = "paths/"+QString::number(layerSpinBox->value());
-                tcpclient->on_pushButton_Send_clicked();
-                StatusSignal("Succeessful Receive Polygon!");
-           }
-           else{
-               StatusSignal(tcpclient->msg_recv);
-           }
+           StatusSignal(tcpclient->msg_recv);
        }
    }
 }

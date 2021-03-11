@@ -44,10 +44,6 @@ void SendFile::sndMsg()
     totalBytes = locFile->size();
     QDataStream sendOut(&outBlock, QIODevice::WriteOnly);
     sendOut.setVersion(QDataStream::Qt_5_12);
-
-    //本地测试
-    //QString curFile = fileName.right(fileName.size()-fileName.lastIndexOf("\\")-1);
-
     QString curFile = fileName.right(fileName.size()-fileName.lastIndexOf('/')-1);
     sendOut <<qint64(0) << qint64(0) << curFile;
     totalBytes += outBlock.size();

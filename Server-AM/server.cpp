@@ -60,12 +60,6 @@ void Server::Messageclassify()
         printSettings = list[1];
     }else if(list[0]=="paths"){
         layer_nr = list[1].toInt();
-        QString args;
-        args = QString::number(layer_nr);
-        sendfile->fileName = "/home/zero/function/output/paths/" + args + "path.cli";
-        //本地测试使用
-        //sendfile->fileName = "C:\\test\\server\\paths\\1.jpeg";
-        sendfile->sndMsg();
     }else if(list[0] == "parallel"){
         parallelStyle = list[1];
     }else if(list[0] == "targetFile"){
@@ -145,19 +139,29 @@ void Server::Perform_action()
               cmd->close();
         }*/
         flag = 1;
-        msg_send = "Succeessful Pathplanning!";
+        msg_send = "previewPath/";
         layer_nr = 0;
     }else if(signal_recv=="paths"){
         flag = 1;
-        msg_send = "Succeessful Receive Path!";
+        QString args;
+        args = QString::number(layer_nr);
+        //sendfile->fileName = "/home/zero/function/output/paths/" + args + "path.cli";
+        //本地测试使用
+        sendfile->fileName = "C:/test/server/paths/" + args + "path.cli";
+        if(fileExist(sendfile->fileName.toStdString())){
+            sendfile->sndMsg();
+            msg_send = "paths/ok";
+        }else {
+            msg_send = "paths/fail";
+        }
         layer_nr = 0;
     }else if(signal_recv=="printSettings"){
         qDebug() << printSettings;
         flag = 1;
-        msg_send = "Succeessful printSettings!";
+        msg_send = "printSettings/";
     }else if(signal_recv=="parallel"){
         flag = 1;
-        msg_send = "Parallel Style is " + parallelStyle + " now!";
+        msg_send = "parallel/" + parallelStyle;
     }else if(signal_recv=="targetFile"){
         flag = 1;
         msg_send = "targetFile/" + fileName;
@@ -165,13 +169,13 @@ void Server::Perform_action()
         flag = 1;
         QList<MyFile> list = sqlAction->getFilesList();
         QList<MyFile>::iterator listIterator = list.begin();
+        //一次性返回所有文件，如果数据量非常大可能会出Bug
+        //考虑用分页查询来解决问题，最好还是重写Socket的收发，解决有可能的"粘包"问题
         msg_send = "file/" + QString::number(list.size(),10) + "/";
         while(listIterator != list.end()){
             msg_send = msg_send + listIterator->getName() + "|" + listIterator->getTime() + "\\";
             listIterator++;
         }
-        Send_action();
-        flag = 0;
     }
     Send_action();
     flag = 0;

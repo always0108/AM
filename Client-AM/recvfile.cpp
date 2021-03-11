@@ -45,7 +45,6 @@ void Recvfile::newConn()
     inBlock.clear();
     tClnt = Revserver->nextPendingConnection();
     status = "A Server connect!";
-    //qDebug() << "A Client connect!";
     //连接QTcpSocket的信号槽，以读取新数据
     connect(tClnt, &QTcpSocket::readyRead, this, &Recvfile::readMsg);
     time.start();
@@ -58,20 +57,19 @@ void Recvfile::readMsg()
     in.setVersion(QDataStream::Qt_5_12);
     if(bytesReceived <= sizeof(qint64) * 2)
     {
-        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize==0))
+        if((tClnt->bytesAvailable() >= fileNameSize) && (fileNameSize == 0))
         {
-            in>>totalBytes>>fileNameSize;
+            in >> totalBytes >> fileNameSize;
             bytesReceived += sizeof(qint64)*2;
         }
-        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize!=0))
+        if((tClnt->bytesAvailable() >= fileNameSize) && (fileNameSize != 0))
         {
-            in>>fileName;
-            //fileName = "D:\\layers\\"+fileName;
+            in >> fileName;
+            //本地测试
             fileName = "C:\\test\\client\\layers\\"+fileName;
             locFile = new QFile(fileName);
             bytesReceived += fileNameSize;
-            if(!locFile->open(QFile::WriteOnly|QFile::Truncate))
-            {
+            if(!locFile->open(QFile::WriteOnly|QFile::Truncate)){
                 qDebug() <<"fail file";
                 return;
             }
@@ -79,17 +77,14 @@ void Recvfile::readMsg()
             return;
         }
     }
-    if(bytesReceived<totalBytes)
-    {
+    if(bytesReceived < totalBytes){
         bytesReceived += tClnt->bytesAvailable();
         inBlock = tClnt->readAll();
         locFile->write(inBlock);
         inBlock.resize(0);
     }
-    if(bytesReceived==totalBytes)
-    {
+    if(bytesReceived == totalBytes){
         locFile->close();
         tClnt->close();
-        qDebug() <<"file success";
     }
 }

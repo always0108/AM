@@ -15,6 +15,7 @@
 #include <QTextCharFormat>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
+#include <sys/stat.h>
 #include "serversettings.h"
 #include "printsettings.h"
 #include "tcpclient.h"
@@ -111,6 +112,7 @@ protected slots:
     void gcodeAction();
     void getPreviewPathAction();
     void setPrintSettings();
+    void getPathsAction();
     void ShowOpenFile();
     void Showpaths();
     void ShowpathProgress();
@@ -126,4 +128,10 @@ protected slots:
     bool processcheck(Processnode process);
     void showMessageBox(QString msg);
 };
+
+//使用stat函数获取文件状态，成功则存在，否则不存在,比较几种方式，用stat() 函数的性能最好
+inline bool fileExist(const std::string& name) {
+  struct stat buffer;
+  return (stat (name.c_str(), &buffer) == 0);
+}
 #endif // MAINWINDOW_H
