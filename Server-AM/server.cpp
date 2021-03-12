@@ -64,6 +64,10 @@ void Server::Messageclassify()
         parallelStyle = list[1];
     }else if(list[0] == "targetFile"){
         fileName = list[1];
+    }else if(list[0] == "getFileList"){
+        currentPage = list[1].toInt();
+    }else if(list[0] == "setPageSize"){
+        pageSize = list[1].toInt();
     }
     Perform_action();
 }
@@ -167,15 +171,18 @@ void Server::Perform_action()
         msg_send = "targetFile/" + fileName;
     }else if(signal_recv=="getFileList"){
         flag = 1;
-        QList<MyFile> list = sqlAction->getFilesList();
+        QList<MyFile> list = sqlAction->getFilesList(pageSize,currentPage);
         QList<MyFile>::iterator listIterator = list.begin();
         //一次性返回所有文件，如果数据量非常大可能会出Bug
         //考虑用分页查询来解决问题，最好还是重写Socket的收发，解决有可能的"粘包"问题
-        msg_send = "file/" + QString::number(list.size(),10) + "/";
+        msg_send = "file/" + QString::number(list.size()) + "/";
         while(listIterator != list.end()){
             msg_send = msg_send + listIterator->getName() + "|" + listIterator->getTime() + "\\";
             listIterator++;
         }
+    }else if(signal_recv=="setPageSize"){
+        flag = 1;
+        msg_send = "setPageSize/" + QString::number(pageSize) + "/" + QString::number(sqlAction->getFilesNum());
     }
     Send_action();
     flag = 0;

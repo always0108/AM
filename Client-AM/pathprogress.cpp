@@ -2,7 +2,7 @@
 
 Pathprogress::Pathprogress(QDialog *parent) : QDialog(parent)
 {
-    setWindowTitle("路径规划");
+    setWindowTitle("填充进度");
     setFixedSize(300,200);
     setWindowFlags(Qt::CustomizeWindowHint|Qt::WindowCloseButtonHint);
     progressBar = new QProgressBar(this);

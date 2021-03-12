@@ -87,10 +87,8 @@ private:
     //服务器与打印参数设置界面
     Serversettings *serversettings;
     Printsettings *printsettings;
-    //目标文件
-    QString filename;
-    QString IP;
     //IP地址与端口
+    QString IP;
     quint16 port;
     //进度条
     Pathprogress *pathprogress;

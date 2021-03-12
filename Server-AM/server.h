@@ -50,6 +50,9 @@ private:
     QString parallelStyle = "cpu";
     int layer_nr = 0;
     double thickness = 0;
+    //数据库后端分页的大小
+    int pageSize;
+    int currentPage;
 };
 
 //使用stat函数获取文件状态，成功则存在，否则不存在,比较几种方式，用stat() 函数的性能最好

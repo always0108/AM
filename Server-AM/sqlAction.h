@@ -16,7 +16,8 @@ public:
     SqlAction();
     bool init();
     void insert(QString filename);
-    QList<MyFile> getFilesList();
+    QList<MyFile> getFilesList(int pageSize,int pageNums);
+    int getFilesNum();
 
 private:
     QSqlDatabase db;

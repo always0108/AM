@@ -10,6 +10,9 @@
 #include <QStandardItemModel>
 #include <QHeaderView>
 #include <QScrollBar>
+#include <QtMath>
+#include <QMessageBox>
+#include "tcpclient.h"
 
 class ModelList :public QDialog
 {
@@ -23,16 +26,31 @@ private:
     QTableView *tableView;
     QStandardItemModel *model;
     QPushButton *confirmBtn;
+    QLabel *current;
+    QLabel *space;
+    QLabel *total;
+    QPushButton *prePage;
+    QPushButton *nextPage;
     QGridLayout *mainLayout;
     QHBoxLayout *noteLayout;
+    QHBoxLayout *pageLayout;
     int count;
+    int pageSize;
+    int totalPage;
+    int currentPage;
+    Tcpclient *tcpclient;
 private slots:
     void choosefile(const QModelIndex &index);
     void onClicked();
+    void pre();
+    void next();
+    void update();
+    void sendSignal(QString msg);
+    void showMessageBox(QString msg);
+
 public slots:
-    void initModelList(int size);
-    QString getTargetfile();
-    void insertData(QString name , QString time);
+    void initModelList(int fileNum,int pageSize,Tcpclient *tcpclient);
+    void updateData(int size , QString list);
 };
 
 #endif // MODELLIST_H

@@ -37,14 +37,23 @@ void SqlAction::insert(QString filename)
     }
 }
 
-QList<MyFile> SqlAction::getFilesList()
+QList<MyFile> SqlAction::getFilesList(int pageSize,int pageNum)
 {
-    query.exec("SELECT name,time FROM file ORDER BY name;");
+    query.exec("SELECT name,time FROM file ORDER BY name LIMIT " + QString::number(pageSize)  + " OFFSET " + QString::number((pageNum-1)*pageSize) + ";");
     QList<MyFile> lists;
-    while(query.next())
+    while(query.next()){
         lists.push_back(MyFile(query.value(0).toString(),query.value(1).toString()));
+    }
     return lists;
 }
+
+int SqlAction::getFilesNum()
+{
+    query.exec("SELECT count(*) FROM file;");
+    query.next();
+    return query.value(0).toInt();
+}
+
 
 void SqlAction::update(QString filename)
 {

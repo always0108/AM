@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
     printsettings = new Printsettings();
     pathprogress = new Pathprogress();
     processnode = Processnode::INIT;
+    modellist = nullptr;
 
     //初始化状态输出栏
     setCentralWidget(showWidget);
@@ -41,6 +42,7 @@ MainWindow::~MainWindow()
     delete serversettings;
     delete printsettings;
     delete pathprogress;
+    delete modellist;
 }
 
 void MainWindow::createActions()
@@ -202,7 +204,8 @@ void  MainWindow::getPathsAction()
 void MainWindow::ShowOpenFile()
 {
     if(getTcpStatus() && processcheck(Processnode::INIT)){
-        SendSignal("getFileList/");
+        //设置分页大小为4
+        SendSignal("setPageSize/4");
     }
 }
 
@@ -316,21 +319,20 @@ void MainWindow::RecvSignal()
            }else if(list[0] == "targetFile"){
                processnode = Processnode::CHOOSEFILE;
                StatusSignal("目标文件已设置为 " + list[1]);
-           }else if(list[0] == "file"){
+           }else if(list[0] == "setPageSize"){
+               if(modellist != nullptr){
+                   delete modellist;
+                   modellist = nullptr;
+               }
                modellist = new ModelList();
-               int size = list[1].toInt();
-               modellist->initModelList(size);
-               QStringList filelist = list[2].split("\\");
-               for(int i = 0; i < size; i++){
-                   QStringList tmp = filelist[i].split("|");
-                   modellist->insertData(tmp[0],tmp[1]);
-               }
-               if(modellist->exec() == QDialog::Accepted){
-                   filename = modellist->getTargetfile();
-                   SendSignal("targetFile/" + filename);
-               }
-               delete modellist;
-               modellist = nullptr;
+               int pageSize = list[1].toInt();
+               int fileNum = list[2].toInt();
+               modellist->initModelList(fileNum,pageSize,tcpclient);
+               modellist->setModal(true);
+               modellist->show();
+           }else if(list[0] == "file"){
+               //update
+               modellist->updateData(list[1].toInt(),list[2]);
            }else if(list[0] == "previewPath"){
                StatusSignal("路径规划完成");
                getPathsAction();
@@ -385,7 +387,7 @@ bool MainWindow::processcheck(Processnode process)
 
 void MainWindow::showMessageBox(QString msg)
 {
-    QMessageBox::warning(NULL, "警告", msg, QMessageBox::Ok , QMessageBox::Ok);
+    QMessageBox::warning(this, "警告", msg, QMessageBox::Ok , QMessageBox::Ok);
 }
 
 

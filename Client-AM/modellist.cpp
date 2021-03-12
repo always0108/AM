@@ -8,14 +8,18 @@ ModelList::ModelList(QDialog *parent) : QDialog(parent)
     setWindowFlags(Qt::CustomizeWindowHint|Qt::WindowCloseButtonHint);
 }
 
-void ModelList::initModelList(int size)
+void ModelList::initModelList(int fileNum,int pageSize,Tcpclient *tcpclient)
 {
+    this->pageSize = pageSize;
+    this->tcpclient = tcpclient;
+    totalPage = (fileNum + pageSize - 1) / pageSize;
+    currentPage = 1;
     tableView = new QTableView();
     model = new QStandardItemModel();
     /* 设置列数 */
     model->setColumnCount(2);
     /* 设置行数 */
-    model->setRowCount(size);
+    model->setRowCount(pageSize);
     tableView->setModel(model);
     /* 行颜色交替显示 */
     tableView->setAlternatingRowColors(true);
@@ -43,22 +47,40 @@ void ModelList::initModelList(int size)
       "QScrollBar::sub-line{background:transparent;}"
       "QScrollBar::add-line{background:transparent;}");
     count = 0;
+    current = new QLabel(QString::number(currentPage));
+    space = new QLabel("/");
+    total = new QLabel(QString::number(totalPage));
+    prePage = new QPushButton("上一页");
+    nextPage = new QPushButton("下一页");
+    pageLayout = new QHBoxLayout();
+    pageLayout->addStretch();
+    pageLayout->addWidget(current);
+    pageLayout->addWidget(space);
+    pageLayout->addWidget(total);
+    pageLayout->addStretch();
+    pageLayout->addWidget(prePage);
+    pageLayout->addWidget(nextPage);
     choosenote = new QLabel("未选择文件");
     filename = new QLabel("");
     noteLayout = new QHBoxLayout();
     noteLayout->addWidget(choosenote);
     noteLayout->addWidget(filename);
+    noteLayout->addStretch();
     confirmBtn = new QPushButton("确定");
     confirmBtn->setEnabled(false);
     confirmBtn->setFocusPolicy(Qt::NoFocus);
     mainLayout = new QGridLayout(this);
     mainLayout->addWidget(tableView,0,0);
-    mainLayout->addLayout(noteLayout,1,0);
-    mainLayout->addWidget(confirmBtn,2,0);
+    mainLayout->addLayout(pageLayout,1,0);
+    mainLayout->addLayout(noteLayout,2,0);
+    mainLayout->addWidget(confirmBtn,3,0);
     mainLayout->setMargin(5);
     mainLayout->setSpacing(5);
     connect(tableView,SIGNAL(doubleClicked(const QModelIndex &)),this,SLOT(choosefile(const QModelIndex &)));
+    connect(prePage,SIGNAL(clicked()),this,SLOT(pre()));
+    connect(nextPage,SIGNAL(clicked()),this,SLOT(next()));
     connect(confirmBtn,SIGNAL(clicked()),this,SLOT(onClicked()));
+    update();
 }
 
 void ModelList::choosefile(const QModelIndex &index)
@@ -71,17 +93,61 @@ void ModelList::choosefile(const QModelIndex &index)
 
 void ModelList::onClicked()
 {
+    sendSignal("targetFile/" + filename->text());
     this->accept();
 }
 
-QString ModelList::getTargetfile()
+void ModelList::updateData(int size , QString list)
 {
-    return filename->text();
+    model->removeRows(0, model->rowCount());
+    current->setText(QString::number(currentPage));
+    QStringList filelist = list.split("\\");
+    for(int i = 0; i < size; i++){
+        QStringList tmp = filelist[i].split("|");
+        model->insertRow(i);
+        model->setItem(i, 0, new QStandardItem(tmp[0]));
+        model->setItem(i, 1, new QStandardItem(tmp[1]));
+    }
 }
 
-void ModelList::insertData(QString name , QString time)
+void ModelList::pre()
 {
-     model->setItem(count, 0, new QStandardItem(name));
-     model->setItem(count, 1, new QStandardItem(time));
-     count++;
+    if(currentPage > 1){
+        currentPage--;
+        update();
+    }else{
+        showMessageBox("已经是最前一页");
+    }
 }
+
+void ModelList::next()
+{
+    if(currentPage < totalPage){
+        currentPage++;
+        update();
+    }else{
+        showMessageBox("已经是最后一页");
+    }
+}
+
+void ModelList::update()
+{
+    sendSignal("getFileList/" + QString::number(currentPage));
+}
+
+void ModelList::sendSignal(QString msg)
+{
+    if(tcpclient->getTcpStatus()){
+        tcpclient->msg_send = msg;
+        tcpclient->on_pushButton_Send_clicked();
+    }else{
+        showMessageBox("服务器未连接");
+    }
+}
+
+void ModelList::showMessageBox(QString msg)
+{
+    QMessageBox::warning(this, "警告", msg , QMessageBox::Ok , QMessageBox::Ok);
+}
+
+
