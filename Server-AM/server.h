@@ -47,7 +47,8 @@ private:
     QTcpSocket *client;
     QHostAddress clientip;
     QString printSettings;
-    QString parallelStyle = "cpu";
+    QString parallelStyle;
+    QString infillStyle;
     int layer_nr = 0;
     double thickness = 0;
     //数据库后端分页的大小

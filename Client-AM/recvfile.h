@@ -8,6 +8,7 @@
 #include <QCloseEvent>
 #include <QTcpSocket>
 #include <QTcpServer>
+#include "showwidget.h"
 
 class Recvfile : public QTcpServer
 {
@@ -16,6 +17,7 @@ public:
     explicit Recvfile(QObject *parent = nullptr);
     ~Recvfile();
     void setFileName(QString name);
+    void setShowWidget(ShowWidget *showWidget);
     void Listen_action();
 private:
     QTcpServer *Revserver;
@@ -31,6 +33,10 @@ private:
     QByteArray inBlock;
     QTime time;
     QString status;
+    QString filePath;
+    //状态输出栏
+    ShowWidget *showWidget;
+
 private slots:
     // 建立Socket连接
     void newConn();

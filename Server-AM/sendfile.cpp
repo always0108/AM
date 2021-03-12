@@ -9,7 +9,7 @@
 #include <QtMath>
 #include <iostream>
 
-SendFile::SendFile(QWidget *parent) : QWidget(parent)
+SendFile::SendFile(QDialog *parent) : QDialog(parent)
 {
     tPort = 8012;
     tSrv = new QTcpSocket();
@@ -28,29 +28,41 @@ void SendFile::initSrv()
     totalBytes = 0;
     bytesWritten = 0;
     bytesTobeWrite = 0;
+    outBlock.clear();
     tSrv->close();
 }
 
+// 发送文件
 void SendFile::sndMsg()
 {
     initSrv();
     tSrv->abort();
     tSrv->connectToHost(IP, tPort);
-    qDebug() << fileName;
-    locFile = new QFile(fileName);
+    locFile = new QFile(filename);
     if(!locFile->open(QFile::ReadOnly)){
         return;
     }
     totalBytes = locFile->size();
     QDataStream sendOut(&outBlock, QIODevice::WriteOnly);
     sendOut.setVersion(QDataStream::Qt_5_12);
-    QString curFile = fileName.right(fileName.size()-fileName.lastIndexOf('/')-1);
-    sendOut <<qint64(0) << qint64(0) << curFile;
+    QString curFile = filename.right(filename.size()-filename.lastIndexOf('/')-1);
+    // 文件流先填入2个0，第一个0写入总大小，第二个0预留写入此次发送文件的大小
+    sendOut << qint64(0) << qint64(0) << curFile;
     totalBytes += outBlock.size();
     sendOut.device()->seek(0);
-    sendOut<<totalBytes<<qint64((outBlock.size()-sizeof (qint64)*2));
-
+    sendOut << totalBytes << qint64((outBlock.size()-sizeof (qint64)*2));
+    //发送带报头的文件
     bytesTobeWrite = totalBytes - tSrv->write(outBlock);
-    bytesWritten += outBlock.size();
     outBlock.resize(0);
+
+    //继续传输数据
+    while(bytesTobeWrite  > 0){
+        outBlock = locFile->read(qMin(bytesTobeWrite, payloadSize));
+        bytesTobeWrite -= tSrv->write(outBlock);
+        outBlock.resize(0);
+    }
+    locFile->close();
+    tSrv->close();
+    tSrv->disconnectFromHost();
+    qDebug() << curFile << "send success";
 }

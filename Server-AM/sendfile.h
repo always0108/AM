@@ -1,28 +1,27 @@
 #ifndef SENDFILE_H
 #define SENDFILE_H
 
-#include <QWidget>
+#include <QDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QProgressBar>
 #include <QPushButton>
 #include <QGridLayout>
-#include <QTcpSocket>
+#include <QTime>
 
 class QFile;
 class QTcpSocket;
 
-class SendFile : public QWidget
+class SendFile : public QDialog
 {
     Q_OBJECT
 public:
-    explicit SendFile(QWidget *parent = nullptr);
+    explicit SendFile(QDialog *parent = nullptr);
     ~SendFile();
-    QString IP;
-    QString fileName;
-    quint16 tPort = 8012;
     void initSrv();
-    void sndMsg();
+    QString IP;
+    int tPort;
+    QString filename;
 
 private:
     QTcpSocket *tSrv;
@@ -33,6 +32,10 @@ private:
     qint64 bytesTobeWrite;
     qint64 payloadSize;
     QByteArray outBlock;
+
+public slots:
+    // 发送文件
+    void sndMsg();
 };
 
 #endif // SENDFILE_H

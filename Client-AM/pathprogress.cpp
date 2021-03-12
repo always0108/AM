@@ -23,7 +23,9 @@ void Pathprogress::initProgress(int total)
     progressBar->setMinimum(0);     // 最小值
     progressBar->setMaximum(total); // 最大值
     progressBar->setValue(0);       //当前进度
+    progressBar->setFormat(tr("Current progress : %1%").arg(QString::number(0, 'f', 1)));
     outputLog->clear();
+    status = true;
 }
 
 void Pathprogress::updateProgress(int layer)
@@ -46,4 +48,24 @@ void Pathprogress::log(QString msg)
     QTextCursor cursor = outputLog->textCursor();
     cursor.movePosition(QTextCursor::End);
     outputLog->setTextCursor(cursor);
+}
+
+bool Pathprogress::getStatus()
+{
+    return status;
+}
+
+void Pathprogress::setStatus(bool status)
+{
+    this->status = status;
+}
+
+void Pathprogress::closeEvent(QCloseEvent *event)
+{
+    if(status){
+        QMessageBox::warning(this, "警告", "路径填充未结束，请稍候" , QMessageBox::Ok , QMessageBox::Ok);
+        event->ignore();
+    }else{
+        event->accept();
+    }
 }

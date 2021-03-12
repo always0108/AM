@@ -20,7 +20,7 @@ public:
     Showpath *showpath;
     QChartView* chartViewtmp;
     showmodel* showModel;
-
+    void log(QString msg);
 signals:
 
 };

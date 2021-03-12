@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     //创建所需对象
     showWidget = new ShowWidget(this);
     recvfile = new Recvfile();
+    recvfile->setShowWidget(showWidget);
     tcpclient = new Tcpclient();
     serversettings = new Serversettings();
     printsettings = new Printsettings();
@@ -20,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
     processnode = Processnode::INIT;
     modellist = nullptr;
 
-    //初始化状态输出栏
+    //初始化日志输出界面
     setCentralWidget(showWidget);
     StatusClear();
 
@@ -29,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tcpclient->socket, &QTcpSocket::readyRead, this, &MainWindow::RecvSignal);
     StatusSignal("端口已成功监听");
 
+    //创建菜单栏、功能栏等
     createActions();
     createMenus();
     createToolBars();
@@ -52,11 +54,18 @@ void MainWindow::createActions()
     sendFileAction = new QAction("添加新的文件",this);
     serverSettingAction = new QAction("服务器参数设置",this);
     printerSettingAction = new QAction("打印机参数设置",this);
-    cpuParalleAction = new QAction("CPU加速",this);
-    gpuParalleAction = new QAction("GPU加速",this);
-    cpuParalleAction->setCheckable(true);
-    cpuParalleAction->setChecked(true);
-    gpuParalleAction->setCheckable(true);
+    cpuParallelAction = new QAction("CPU加速",this);
+    gpuParallelAction = new QAction("GPU加速",this);
+    cpuParallelAction->setCheckable(true);
+    cpuParallelAction->setChecked(true);
+    gpuParallelAction->setCheckable(true);
+    gpuParallelAction->setChecked(false);
+    hatchInfillAction = new QAction("Hatch",this);
+    offsetInfilllAction = new QAction("Offset",this);
+    hatchInfillAction->setCheckable(true);
+    hatchInfillAction->setChecked(true);
+    offsetInfilllAction->setCheckable(true);
+    offsetInfilllAction->setChecked(false);
 
     //工具栏
     connectSeverAction = new QAction("连接/断开服务器",this);
@@ -74,7 +83,7 @@ void MainWindow::createActions()
     thickSpinBox->setSingleStep(0.01);
     thickSpinBox->setValue(0.03);
 
-    connect(openFileAction,&QAction::triggered,this,&MainWindow::ShowOpenFile);
+    connect(openFileAction,&QAction::triggered,this,&MainWindow::setPageSizeAction);
     connect(sendFileAction,&QAction::triggered,this,&MainWindow::Showsend);
     connect(serverSettingAction,&QAction::triggered,this,&MainWindow::ShowServer);
     connect(printerSettingAction,&QAction::triggered,this,&MainWindow::ShowPrintSettings);
@@ -86,8 +95,10 @@ void MainWindow::createActions()
     connect(previewPathAction, &QAction::triggered, this,&MainWindow::getPreviewPathAction);
     connect(showpath, &QAction::triggered, this,&MainWindow::Showpaths);
     connect(clearpath, &QAction::triggered, this,&MainWindow::Clearpaths);
-    connect(cpuParalleAction,&QAction::triggered,this,&MainWindow::cpuParallelChecked);
-    connect(gpuParalleAction,&QAction::triggered,this,&MainWindow::gpuParallelChecked);
+    connect(cpuParallelAction,&QAction::triggered,this,&MainWindow::cpuParallelChecked);
+    connect(gpuParallelAction,&QAction::triggered,this,&MainWindow::gpuParallelChecked);
+    connect(hatchInfillAction,&QAction::triggered,this,&MainWindow::hatchInfillChecked);
+    connect(offsetInfilllAction,&QAction::triggered,this,&MainWindow::offsetInfillChecked);
 }
 
 void MainWindow::createMenus()
@@ -101,8 +112,12 @@ void MainWindow::createMenus()
     settingMenu->addAction(printerSettingAction);
 
     parallelMenu = menuBar()->addMenu("并行");
-    parallelMenu->addAction(cpuParalleAction);
-    parallelMenu->addAction(gpuParalleAction);
+    parallelMenu->addAction(cpuParallelAction);
+    parallelMenu->addAction(gpuParallelAction);
+
+    infillMenu = menuBar()->addMenu("填充方式");
+    infillMenu->addAction(hatchInfillAction);
+    infillMenu->addAction(offsetInfilllAction);
 }
 
 void MainWindow::createToolBars()
@@ -130,32 +145,58 @@ void MainWindow::createToolBars()
     pathTool->addWidget(thickSpinBox);
 }
 
+/************* 菜单栏打勾 **************/
 void MainWindow::cpuParallelChecked()
 {
     if(getTcpStatus()){
-        cpuParalleAction->setChecked(true);
-        gpuParalleAction->setChecked(false);
-        //向后台更新参数
-        SendSignal("parallel/cpu");
+        // 判断状态是否改变，若改变才更新
+        if(cpuParallelAction->isChecked() || gpuParallelAction->isChecked())
+            SendSignal("parallel/CPU");
+        cpuParallelAction->setChecked(true);
+        gpuParallelAction->setChecked(false);
     }else{
         //未连接服务器，还原原本的打勾状态
-        cpuParalleAction->setChecked(!cpuParalleAction->isChecked());
+        cpuParallelAction->setChecked(!cpuParallelAction->isChecked());
     }
 }
 
 void MainWindow::gpuParallelChecked()
 {
     if(getTcpStatus()){
-        cpuParalleAction->setChecked(false);
-        gpuParalleAction->setChecked(true);
-        //向后台更新参数
-        SendSignal("parallel/gpu");
+        if(cpuParallelAction->isChecked() || gpuParallelAction->isChecked())
+            SendSignal("parallel/GPU");
+        cpuParallelAction->setChecked(false);
+        gpuParallelAction->setChecked(true);
     }else{
-        //未连接服务器，还原原本的打勾状态
-        gpuParalleAction->setChecked(!gpuParalleAction->isChecked());
+        gpuParallelAction->setChecked(!gpuParallelAction->isChecked());
     }
 }
 
+void MainWindow::hatchInfillChecked()
+{
+    if(getTcpStatus()){
+        if(hatchInfillAction->isChecked() || offsetInfilllAction->isChecked())
+            SendSignal("infillStyle/Hatch");
+        hatchInfillAction->setChecked(true);
+        offsetInfilllAction->setChecked(false);
+    }else{
+        hatchInfillAction->setChecked(!hatchInfillAction->isChecked());
+    }
+}
+
+void MainWindow::offsetInfillChecked()
+{
+    if(getTcpStatus()){
+        if(hatchInfillAction->isChecked() || offsetInfilllAction->isChecked())
+            SendSignal("infillStyle/Offset");
+        hatchInfillAction->setChecked(false);
+        offsetInfilllAction->setChecked(true);
+    }else{
+        offsetInfilllAction->setChecked(!offsetInfilllAction->isChecked());
+    }
+}
+
+/************* TCP连接状态 **************/
 bool MainWindow::getTcpStatus()
 {
     if(tcpclient->getTcpStatus()){
@@ -166,7 +207,7 @@ bool MainWindow::getTcpStatus()
     }
 }
 
-
+/************* 一些请求后台Action **************/
 void MainWindow::sliceAction()
 {
     if(getTcpStatus()  && processcheck(Processnode::CHOOSEFILE)){
@@ -201,7 +242,7 @@ void  MainWindow::getPathsAction()
     }
 }
 
-void MainWindow::ShowOpenFile()
+void MainWindow::setPageSizeAction()
 {
     if(getTcpStatus() && processcheck(Processnode::INIT)){
         //设置分页大小为4
@@ -209,6 +250,8 @@ void MainWindow::ShowOpenFile()
     }
 }
 
+/**************** 路径 *****************/
+// 1.显示路径
 void MainWindow::Showpaths()
 {
     if(getTcpStatus() && processcheck(Processnode::INFILL)){
@@ -222,36 +265,34 @@ void MainWindow::Showpaths()
             StatusSignal("路径已展示");
         }else{
             //去服务端获取文件
-            StatusSignal("本地文件不存在 , 正在从服务器获取");
+            StatusSignal("本地文件不存在");
+            StatusSignal("正在从服务器获取");
             getPathsAction();
         }
     }
 }
 
-void MainWindow::ShowpathProgress()
-{
-    if(getTcpStatus() && processcheck(Processnode::SLICE)){
-        pathprogress->setModal(true);
-        pathprogress->show();
-        SendSignal("infill/");
-    }
-}
-
+// 2.清空当前路径
 void MainWindow::Clearpaths()
 {
     showWidget->showpath->clearpath();
+    StatusSignal("路径已清空");
 }
 
+/************ 显示设置界面 ************/
+// 1.服务器设置
 void MainWindow::ShowServer()
 {
     serversettings->exec();
 }
 
+// 2. 打印参数设置
 void MainWindow::ShowPrintSettings()
 {
     printsettings->exec();
 }
 
+/************ 显示发送文件界面 ************/
 void MainWindow::Showsend()
 {
     if(getTcpStatus()){
@@ -263,6 +304,19 @@ void MainWindow::Showsend()
     }
 }
 
+/********** 填充进度条 ***********/
+void MainWindow::ShowpathProgress()
+{
+    if(getTcpStatus() && processcheck(Processnode::SLICE)){
+        pathprogress->initProgress(layerNumber);
+        pathprogress->log("开始准备进行填充 , 总共有"+ QString::number(layerNumber) +"层 ! ");
+        pathprogress->setModal(true);
+        pathprogress->show();
+        SendSignal("infill/");
+    }
+}
+
+/********** 连接服务器 ***********/
 void MainWindow::ConnectServer()
 {
     if(!tcpclient->getTcpStatus()){
@@ -281,8 +335,7 @@ void MainWindow::ConnectServer()
     }
 }
 
-
-// 向服务端发送消息
+/************ 发送消息 ************/
 void MainWindow::SendSignal(QString msg)
 {
     if(getTcpStatus()){
@@ -291,7 +344,7 @@ void MainWindow::SendSignal(QString msg)
     }
 }
 
-// 接收服务端返回的信息
+/************ 消息分发 ************/
 void MainWindow::RecvSignal()
 {
    if(tcpclient->msg_flag!=0){
@@ -301,9 +354,8 @@ void MainWindow::RecvSignal()
            if(list[0]=="slice"){
                QString tips = "当前层（最大" + list[1] + "）";
                layernum->setText(tips);
-               layerSpinBox->setRange(1, list[1].toInt());
-               pathprogress->initProgress(list[1].toInt());
-               pathprogress->log("开始准备进行填充 , 总共有"+ list[1] +"层 ! ");
+               layerNumber = list[1].toInt();
+               layerSpinBox->setRange(1, layerNumber);
                processnode = Processnode::SLICE;
                StatusSignal("切片完成 , 总共有" + list[1] + "层 !");
            }else if(list[0] == "path"){
@@ -314,6 +366,7 @@ void MainWindow::RecvSignal()
                    StatusSignal("开始进行路径填充");
                }else if(list[1] == "end"){
                    processnode = Processnode::INFILL;
+                   pathprogress->setStatus(false);
                    StatusSignal("路径填充已经结束");
                }
            }else if(list[0] == "targetFile"){
@@ -331,19 +384,17 @@ void MainWindow::RecvSignal()
                modellist->setModal(true);
                modellist->show();
            }else if(list[0] == "file"){
-               //update
                modellist->updateData(list[1].toInt(),list[2]);
            }else if(list[0] == "previewPath"){
                StatusSignal("路径规划完成");
-               getPathsAction();
            }else if(list[0] == "paths"){
-               if(list[1] == "ok"){
-                   Showpaths();
-               }else if(list[1] == "fail"){
+               if(list[1] == "fail"){
                    showMessageBox("没有该层的路径文件");
                }
            }else if(list[0] == "parallel"){
-               StatusSignal("加速方式已设置为" + list[1].toUpper() + "加速");
+               StatusSignal("加速方式已设置为" + list[1] + "加速");
+           }else if(list[0] == "infillStyle"){
+               StatusSignal("填充方式已设置为" + list[1] + "填充");
            }else if(list[0] == "printSettings"){
                StatusSignal("打印参数设置成功");
            }
@@ -353,20 +404,20 @@ void MainWindow::RecvSignal()
    }
 }
 
-// 状态输出栏
+/************ 日志输出 ************/
+// 1.输出信息
 void MainWindow::StatusSignal(QString msg)
 {
-   showWidget->textEdit_Recv->append(msg);
-   QTextCursor cursor = showWidget->textEdit_Recv->textCursor();
-   cursor.movePosition(QTextCursor::End);
-   showWidget->textEdit_Recv->setTextCursor(cursor);
+    showWidget->log(msg);
 }
 
+// 2.清屏
 void MainWindow::StatusClear()
 {
     showWidget->textEdit_Recv->clear();
 }
 
+/************ 流程检查 ************/
 bool MainWindow::processcheck(Processnode process)
 {
     if(processnode < process){
@@ -385,6 +436,7 @@ bool MainWindow::processcheck(Processnode process)
     }
 }
 
+/************ 消息弹窗 ************/
 void MainWindow::showMessageBox(QString msg)
 {
     QMessageBox::warning(this, "警告", msg, QMessageBox::Ok , QMessageBox::Ok);

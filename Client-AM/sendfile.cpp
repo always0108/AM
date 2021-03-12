@@ -43,10 +43,8 @@ SendFile::SendFile(QDialog *parent) : QDialog(parent)
     mainlayout->addWidget(statuslabel,2,0,1,2);
     mainlayout->addWidget(closebtn,3,2);
 
-
     tPort = 8011;
     tSrv = new QTcpSocket();
-    //connect(tSrv, &QTcpSocket::readyRead, this, &SendFile::sndMsg);
     connect(tSrv, &QTcpSocket::bytesWritten, this, [=](){updClntProgress(payloadSize);});
     connect(openfilebtn, &QPushButton::pressed, this, &SendFile::on_openBtn_clicked);
     connect(sendbtn, &QPushButton::pressed, this, &SendFile::on_sendBtn_clicked);
@@ -74,16 +72,13 @@ void SendFile::initSrv()
     tSrv->close();
 }
 
-
-
 // 发送文件
 void SendFile::sndMsg()
 {
     sendbtn->setEnabled(true);
-    statuslabel->setText("开始传送文件"+theFileName+" !");
+    statuslabel->setText("开始传送文件" + theFileName+" !");
     locFile = new QFile(filename);
-    if(!locFile->open(QFile::ReadOnly))
-    {
+    if(!locFile->open(QFile::ReadOnly)){
         QMessageBox::warning(this,tr("应用程序"),tr("无法读取文件 %l:\n%2").arg(filename).arg(locFile->errorString()));
         return;
     }
@@ -101,18 +96,14 @@ void SendFile::sndMsg()
 
     bytesTobeWrite = totalBytes - tSrv->write(outBlock);
     bytesWritten += outBlock.size();
-    //std::cout<<"outBlock = "<<outBlock.size()<<std::endl;
     outBlock.resize(0);
 }
 
 // 传输进度条
 void SendFile::updClntProgress(qint64 numBytes)
 {
-    //QApplication::processEvents();
-    //bytesWritten += (int)numBytes;
     bytesWritten += qMin(bytesTobeWrite, numBytes);
-    if(bytesTobeWrite>0)
-    {
+    if(bytesTobeWrite > 0){
         outBlock = locFile->read(qMin(bytesTobeWrite, payloadSize));
         bytesTobeWrite -= (int)tSrv->write(outBlock);
         outBlock.resize(0);
@@ -120,10 +111,7 @@ void SendFile::updClntProgress(qint64 numBytes)
         locFile->close();
     }
     prossbar->setMaximum(totalBytes);
-    //prossbar->setValue(bytesWritten);
     prossbar->setValue(bytesWritten);
-    //std::cout<<"totalBytes = "<<totalBytes<<std::endl;
-    //std::cout<<"bytesWritten = "<<bytesWritten<<std::endl;
     float useTime = time.elapsed();
     double speed = bytesWritten/useTime;
     statuslabel->setText("已发送"+QString::number(bytesWritten/(1024*1024))+"MB "+
@@ -131,8 +119,7 @@ void SendFile::updClntProgress(qint64 numBytes)
                          "共"+QString::number(totalBytes/(1024*1024))+"MB 已用时:"+
                          QString::number(useTime/1000)+" 秒\n"+
                          "估计剩余时间:"+QString::number((totalBytes/speed/1000)-useTime/1000)+" 秒");
-    if(bytesWritten==totalBytes)
-    {
+    if(bytesWritten==totalBytes){
         locFile->close();
         tSrv->close();
         statuslabel->setText("传输文件"+theFileName+"成功!");
@@ -147,10 +134,9 @@ void SendFile::on_openBtn_clicked()
 {
     filename = QFileDialog::getOpenFileName(this);
     fileLine->setText(filename);
-    if(!filename.isEmpty())
-    {
-        theFileName = filename.right(filename.size()-filename.lastIndexOf('/')-1);
-        statuslabel->setText("要传输的文件为:"+theFileName);
+    if(!filename.isEmpty()){
+        theFileName = filename.right(filename.size() - filename.lastIndexOf('/') -1);
+        statuslabel->setText("要传输的文件为:" + theFileName);
         sendbtn->setEnabled(true);
         openfilebtn->setEnabled(false);
     }
@@ -174,5 +160,3 @@ void SendFile::on_closeBtn_clicked()
     }
     tSrv->deleteLater();
 }
-
-

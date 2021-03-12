@@ -23,6 +23,8 @@ Server::~Server()
 void Server::init()
 {
     port = 8010;
+    parallelStyle = "CPU";  // 默认为CPU加速
+    infillStyle = "Hatch";  // 默认填充方式为Hatch
     server = new QTcpServer();
     cmd = new QProcess();
     Listen_action();
@@ -62,6 +64,8 @@ void Server::Messageclassify()
         layer_nr = list[1].toInt();
     }else if(list[0] == "parallel"){
         parallelStyle = list[1];
+    }else if(list[0] == "infillStyle"){
+        infillStyle = list[1];
     }else if(list[0] == "targetFile"){
         fileName = list[1];
     }else if(list[0] == "getFileList"){
@@ -74,7 +78,7 @@ void Server::Messageclassify()
 
 void Server::Perform_action()
 {
-    if(signal_recv=="slicing"){
+    if(signal_recv == "slicing"){
         /*QString args;
         args = QString::number(layer_nr);
         QStringList arguments;
@@ -93,7 +97,7 @@ void Server::Perform_action()
         //我这里发送的是假数据，将30改成每次切片的真正层数即可
         flag = 1;
         msg_send = "slice/30";
-    }else if(signal_recv=="infill"){
+    }else if(signal_recv == "infill"){
         /*QStringList arguments;
         arguments <<"-c"<<"/home/zero/function/infill/build/infill -l 100 -s sparseInfillLineDistance=200";
         cmd->start("bash",arguments);
@@ -122,11 +126,11 @@ void Server::Perform_action()
             }
         }
         msg_send = "path/end/";
-    }else if(signal_recv=="gcode"){
+    }else if(signal_recv == "gcode"){
         //temp = "gcode";
         flag = 1;
         msg_send = "Succeessful gcode!";
-    }else if(signal_recv=="previewPath"){
+    }else if(signal_recv == "previewPath"){
         /*QString args;
         args = QString::number(layer_nr);
         sendfile->fileName = "/home/zero/function/output/layers/"+args+".cli";
@@ -145,31 +149,34 @@ void Server::Perform_action()
         flag = 1;
         msg_send = "previewPath/";
         layer_nr = 0;
-    }else if(signal_recv=="paths"){
+    }else if(signal_recv == "paths"){
         flag = 1;
         QString args;
         args = QString::number(layer_nr);
         //sendfile->fileName = "/home/zero/function/output/paths/" + args + "path.cli";
         //本地测试使用
-        sendfile->fileName = "C:/test/server/paths/" + args + "path.cli";
-        if(fileExist(sendfile->fileName.toStdString())){
+        sendfile->filename = "C:/test/server/paths/" + args + "path.cli";
+        if(fileExist(sendfile->filename.toStdString())){
             sendfile->sndMsg();
             msg_send = "paths/ok";
         }else {
             msg_send = "paths/fail";
         }
         layer_nr = 0;
-    }else if(signal_recv=="printSettings"){
+    }else if(signal_recv == "printSettings"){
         qDebug() << printSettings;
         flag = 1;
         msg_send = "printSettings/";
-    }else if(signal_recv=="parallel"){
+    }else if(signal_recv == "parallel"){
         flag = 1;
         msg_send = "parallel/" + parallelStyle;
-    }else if(signal_recv=="targetFile"){
+    }else if(signal_recv == "infillStyle"){
+        flag = 1;
+        msg_send = "infillStyle/" + infillStyle;
+    }else if(signal_recv == "targetFile"){
         flag = 1;
         msg_send = "targetFile/" + fileName;
-    }else if(signal_recv=="getFileList"){
+    }else if(signal_recv == "getFileList"){
         flag = 1;
         QList<MyFile> list = sqlAction->getFilesList(pageSize,currentPage);
         QList<MyFile>::iterator listIterator = list.begin();
@@ -180,7 +187,7 @@ void Server::Perform_action()
             msg_send = msg_send + listIterator->getName() + "|" + listIterator->getTime() + "\\";
             listIterator++;
         }
-    }else if(signal_recv=="setPageSize"){
+    }else if(signal_recv == "setPageSize"){
         flag = 1;
         msg_send = "setPageSize/" + QString::number(pageSize) + "/" + QString::number(sqlAction->getFilesNum());
     }

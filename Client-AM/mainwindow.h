@@ -44,6 +44,7 @@ private:
     QMenu *fileMenu;
     QMenu *settingMenu;
     QMenu *parallelMenu;
+    QMenu *infillMenu;
     /**文件菜单项**/
     QAction *openFileAction;
     QAction *sendFileAction;
@@ -51,8 +52,12 @@ private:
     QAction *serverSettingAction;
     QAction *printerSettingAction;
     /**并行菜单项**/
-    QAction *cpuParalleAction;
-    QAction *gpuParalleAction;
+    QAction *cpuParallelAction;
+    QAction *gpuParallelAction;
+    /**填充菜单项**/
+    QAction *hatchInfillAction;
+    QAction *offsetInfilllAction;
+
 
     /****工具栏****/
     QToolBar *functionTool;
@@ -101,17 +106,21 @@ private:
     //收发文件
     SendFile *sendfile;
     Recvfile *recvfile;
+    //切片的层数
+    int layerNumber;
 
 protected slots:
     void cpuParallelChecked();
     void gpuParallelChecked();
+    void hatchInfillChecked();
+    void offsetInfillChecked();
     bool getTcpStatus();
     void sliceAction();
     void gcodeAction();
     void getPreviewPathAction();
     void setPrintSettings();
     void getPathsAction();
-    void ShowOpenFile();
+    void setPageSizeAction();
     void Showpaths();
     void ShowpathProgress();
     void Clearpaths();

@@ -209,4 +209,5 @@ void Showpath::clearpath()
     layer_path.clear();
     polygons.clear();
     qwtPlot->replot();
+    infile.close();
 }

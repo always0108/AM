@@ -27,3 +27,11 @@ ShowWidget::ShowWidget(QWidget *parent) : QWidget(parent)
     mainLayout->setColumnStretch(0,1);
     mainLayout->setColumnStretch(1,1);
 }
+
+void ShowWidget::log(QString msg)
+{
+   textEdit_Recv->append(msg);
+   QTextCursor cursor = textEdit_Recv->textCursor();
+   cursor.movePosition(QTextCursor::End);
+   textEdit_Recv->setTextCursor(cursor);
+}

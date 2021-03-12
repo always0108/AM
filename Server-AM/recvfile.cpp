@@ -48,7 +48,7 @@ void Recvfile::readMsg()
     QDataStream in(tClnt);
     in.setVersion(QDataStream::Qt_5_12);
     if(bytesReceived <= sizeof(qint64)*2){
-        if((tClnt->bytesAvailable()>=fileNameSize) && (fileNameSize==0)){
+        if((tClnt->bytesAvailable() >= fileNameSize) && (fileNameSize == 0)){
             in >> totalBytes >> fileNameSize;
             bytesReceived += sizeof(qint64)*2;
         }
