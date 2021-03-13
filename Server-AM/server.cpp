@@ -164,7 +164,21 @@ void Server::Perform_action()
         }
         layer_nr = 0;
     }else if(signal_recv == "printSettings"){
-        qDebug() << printSettings;
+        QStringList list = printSettings.split("|");
+        for(int i = 0;i<list.size();i++){
+            QStringList parameter = list[i].split("=");
+            if(parameter[0] == "laserPower"){
+                laserPower = parameter[1].toInt();
+            }else if(parameter[0] == "scanSpeed"){
+                scanSpeed = parameter[1].toInt();
+            }else if(parameter[0] == "layerThickness"){
+                layerThickness = parameter[1].toInt();
+            }else if(parameter[0] == "scanPitch"){
+                scanPitch = parameter[1].toInt();
+            }else if(parameter[0] == "spotSize"){
+                spotSize = parameter[1].toInt();
+            }
+        }
         flag = 1;
         msg_send = "printSettings/";
     }else if(signal_recv == "parallel"){
@@ -181,7 +195,7 @@ void Server::Perform_action()
         QList<MyFile> list = sqlAction->getFilesList(pageSize,currentPage);
         QList<MyFile>::iterator listIterator = list.begin();
         //一次性返回所有文件，如果数据量非常大可能会出Bug
-        //考虑用分页查询来解决问题，最好还是重写Socket的收发，解决有可能的"粘包"问题
+        //用分页查询来解决问题，最好还是重写Socket的收发，解决有可能的"粘包"问题
         msg_send = "file/" + QString::number(list.size()) + "/";
         while(listIterator != list.end()){
             msg_send = msg_send + listIterator->getName() + "|" + listIterator->getTime() + "\\";

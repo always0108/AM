@@ -46,7 +46,6 @@ private:
     QString fileName;
     QTcpSocket *client;
     QHostAddress clientip;
-    QString printSettings;
     QString parallelStyle;
     QString infillStyle;
     int layer_nr = 0;
@@ -54,6 +53,13 @@ private:
     //数据库后端分页的大小
     int pageSize;
     int currentPage;
+    //打印参数的设置
+    QString printSettings;
+    int laserPower = 110;
+    int scanSpeed = 200;
+    int layerThickness = 50;
+    int scanPitch = 50;
+    int spotSize = 60;
 };
 
 //使用stat函数获取文件状态，成功则存在，否则不存在,比较几种方式，用stat() 函数的性能最好
