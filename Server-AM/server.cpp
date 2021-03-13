@@ -24,7 +24,7 @@ void Server::init()
 {
     port = 8010;
     parallelStyle = "CPU";  // 默认为CPU加速
-    infillStyle = "Hatch";  // 默认填充方式为Hatch
+    infillStyle = "INFILL_LINES";  // 默认填充方式为INFILL_LINES
     server = new QTcpServer();
     cmd = new QProcess();
     Listen_action();
@@ -96,7 +96,7 @@ void Server::Perform_action()
         //希望返回切片的层数
         //我这里发送的是假数据，将30改成每次切片的真正层数即可
         flag = 1;
-        msg_send = "slice/30";
+        msg_send = "slice/30/1";
     }else if(signal_recv == "infill"){
         /*QStringList arguments;
         arguments <<"-c"<<"/home/zero/function/infill/build/infill -l 100 -s sparseInfillLineDistance=200";

@@ -57,7 +57,7 @@ void Recvfile::readMsg()
         if((tClnt->bytesAvailable() >= fileNameSize) && (fileNameSize != 0)){
             in >> fileName;
             //本地测试
-            filePath = "C:\\test\\client\\layers\\"+fileName;
+            filePath = "D:\\layers\\"+fileName;
             locFile = new QFile(filePath);
             bytesReceived += fileNameSize;
             if(!locFile->open(QFile::WriteOnly)){

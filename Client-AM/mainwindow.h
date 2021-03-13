@@ -108,6 +108,7 @@ private:
     Recvfile *recvfile;
     //切片的层数
     int layerNumber;
+    QTime infillTime;
 
 protected slots:
     void cpuParallelChecked();

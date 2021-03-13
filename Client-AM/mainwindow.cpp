@@ -71,9 +71,9 @@ void MainWindow::createActions()
     connectSeverAction = new QAction("连接/断开服务器",this);
     printSettingsAction = new QAction("更新打印参数",this);
     stratifyAction = new QAction("分层",this);
-    previewPathAction = new QAction("路径规划",this);
+    previewPathAction = new QAction("实时路径规划",this);
     generateGcodeAction = new QAction("生成G代码",this);
-    infillAction = new QAction("路径填充",this);
+    infillAction = new QAction("路径规划",this);
     showpath = new QAction("显示路径",this);
     clearpath = new QAction("清空",this);
     layerSpinBox = new QSpinBox();
@@ -176,7 +176,7 @@ void MainWindow::hatchInfillChecked()
 {
     if(getTcpStatus()){
         if(hatchInfillAction->isChecked() || offsetInfilllAction->isChecked())
-            SendSignal("infillStyle/Hatch");
+            SendSignal("infillStyle/INFILL_LINES");
         hatchInfillAction->setChecked(true);
         offsetInfilllAction->setChecked(false);
     }else{
@@ -188,7 +188,7 @@ void MainWindow::offsetInfillChecked()
 {
     if(getTcpStatus()){
         if(hatchInfillAction->isChecked() || offsetInfilllAction->isChecked())
-            SendSignal("infillStyle/Offset");
+            SendSignal("infillStyle/INFILL_CONCENTRIC");
         hatchInfillAction->setChecked(false);
         offsetInfilllAction->setChecked(true);
     }else{
@@ -217,16 +217,17 @@ void MainWindow::sliceAction()
 
 void MainWindow::gcodeAction()
 {
-    if(getTcpStatus()  && processcheck(Processnode::INFILL)){
+    if(getTcpStatus()  && processcheck(Processnode::SLICE)){
         SendSignal("gcode/");
     }
 }
 
 void MainWindow::getPreviewPathAction()
 {
-    if(getTcpStatus()  && processcheck(Processnode::INFILL)){
+    if(getTcpStatus()  && processcheck(Processnode::SLICE)){
         SendSignal("previewPath/" + QString::number(layerSpinBox->value()));
     }
+
 }
 
 void MainWindow::setPrintSettings()
@@ -255,7 +256,7 @@ void MainWindow::setPageSizeAction()
 void MainWindow::Showpaths()
 {
     if(getTcpStatus() && processcheck(Processnode::INFILL)){
-        QString input = "C:\\test\\client\\layers\\" + QString::number(layerSpinBox->value());
+        QString input = "D:\\layers\\" + QString::number(layerSpinBox->value());
         QString input_path = input + "path.cli";
         // 目前感觉这个逻辑上还是有些问题，有可能不是最新的文件
         // 有待商榷
@@ -309,6 +310,7 @@ void MainWindow::ShowpathProgress()
 {
     if(getTcpStatus() && processcheck(Processnode::SLICE)){
         pathprogress->initProgress(layerNumber);
+        infillTime.start();
         pathprogress->log("开始准备进行填充 , 总共有"+ QString::number(layerNumber) +"层 ! ");
         pathprogress->setModal(true);
         pathprogress->show();
@@ -357,7 +359,7 @@ void MainWindow::RecvSignal()
                layerNumber = list[1].toInt();
                layerSpinBox->setRange(1, layerNumber);
                processnode = Processnode::SLICE;
-               StatusSignal("切片完成 , 总共有" + list[1] + "层 !");
+               StatusSignal("分层完成, 耗时" +list[2] + "s, 总共有" + list[1] + "层 !");
            }else if(list[0] == "path"){
                if(list[1] == "progress"){
                    pathprogress->log("正在对"+ list[2] +"层进行填充 , 请稍候 !");
@@ -367,7 +369,9 @@ void MainWindow::RecvSignal()
                }else if(list[1] == "end"){
                    processnode = Processnode::INFILL;
                    pathprogress->setStatus(false);
-                   StatusSignal("路径填充已经结束");
+                   int timeElapsed = infillTime.elapsed();
+                   pathprogress->log("耗时"+QString::number((timeElapsed*1.0)/1000,'f',2)+"s ！");
+                   StatusSignal("路径填充已经结束, 耗时"+QString::number((timeElapsed*1.0)/1000,'f',2)+"s");
                }
            }else if(list[0] == "targetFile"){
                processnode = Processnode::CHOOSEFILE;
@@ -386,7 +390,8 @@ void MainWindow::RecvSignal()
            }else if(list[0] == "file"){
                modellist->updateData(list[1].toInt(),list[2]);
            }else if(list[0] == "previewPath"){
-               StatusSignal("路径规划完成");
+               StatusSignal("路径规划"+list[1]+"层完成，请点击“显示路径”按钮");
+               processnode = Processnode::INFILL;
            }else if(list[0] == "paths"){
                if(list[1] == "fail"){
                    showMessageBox("没有该层的路径文件");
@@ -394,7 +399,11 @@ void MainWindow::RecvSignal()
            }else if(list[0] == "parallel"){
                StatusSignal("加速方式已设置为" + list[1] + "加速");
            }else if(list[0] == "infillStyle"){
-               StatusSignal("填充方式已设置为" + list[1] + "填充");
+               if(list[1] == "INFILL_CONCENTRIC"){
+                   StatusSignal("填充方式已设置为Offset");
+               }else if(list[1] == "INFILL_LINES"){
+                   StatusSignal("填充方式已设置为Hatch");
+               }
            }else if(list[0] == "printSettings"){
                StatusSignal("打印参数设置成功");
            }

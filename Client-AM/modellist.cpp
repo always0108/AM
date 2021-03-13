@@ -13,7 +13,11 @@ void ModelList::initModelList(int fileNum,int pageSize,Tcpclient *tcpclient)
     this->pageSize = pageSize;
     this->tcpclient = tcpclient;
     totalPage = (fileNum + pageSize - 1) / pageSize;
-    currentPage = 1;
+    if(totalPage != 0){
+        currentPage = 1;
+    }else{
+        currentPage = 0;
+    }
     tableView = new QTableView();
     model = new QStandardItemModel();
     /* 设置列数 */
