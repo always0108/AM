@@ -110,6 +110,8 @@ private:
     int layerNumber;
     QTime infillTime;
 
+    QString infillpartern = "CPU";
+
 protected slots:
     void cpuParallelChecked();
     void gpuParallelChecked();

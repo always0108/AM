@@ -57,7 +57,7 @@ void MainWindow::createActions()
     cpuParallelAction = new QAction("CPU加速",this);
     gpuParallelAction = new QAction("GPU加速",this);
     cpuParallelAction->setCheckable(true);
-    cpuParallelAction->setChecked(true);
+    cpuParallelAction->setChecked(false);
     gpuParallelAction->setCheckable(true);
     gpuParallelAction->setChecked(false);
     hatchInfillAction = new QAction("Hatch",this);
@@ -128,7 +128,7 @@ void MainWindow::createToolBars()
     functionTool->addAction(printSettingsAction);
     functionTool->addAction(stratifyAction);
     functionTool->addAction(infillAction);
-    functionTool->addAction(generateGcodeAction);
+    //functionTool->addAction(generateGcodeAction);////////////////////////////////////
     functionTool->setAllowedAreas(Qt::RightToolBarArea);
     functionTool->setFixedHeight(50);
 
@@ -149,11 +149,14 @@ void MainWindow::createToolBars()
 void MainWindow::cpuParallelChecked()
 {
     if(getTcpStatus()){
-        // 判断状态是否改变，若改变才更新
-        if(cpuParallelAction->isChecked() || gpuParallelAction->isChecked())
+        if(cpuParallelAction->isChecked()){
             SendSignal("parallel/CPU");
-        cpuParallelAction->setChecked(true);
-        gpuParallelAction->setChecked(false);
+            gpuParallelAction->setChecked(false);
+            infillpartern = "CPU";
+        }else{
+            SendSignal("parallel/NULL");
+            infillpartern = "NULL";
+        }
     }else{
         //未连接服务器，还原原本的打勾状态
         cpuParallelAction->setChecked(!cpuParallelAction->isChecked());
@@ -163,10 +166,14 @@ void MainWindow::cpuParallelChecked()
 void MainWindow::gpuParallelChecked()
 {
     if(getTcpStatus()){
-        if(cpuParallelAction->isChecked() || gpuParallelAction->isChecked())
+        if(gpuParallelAction->isChecked()){
             SendSignal("parallel/GPU");
-        cpuParallelAction->setChecked(false);
-        gpuParallelAction->setChecked(true);
+            cpuParallelAction->setChecked(false);
+            infillpartern = "GPU";
+        }else{
+            SendSignal("parallel/NULL");
+            infillpartern = "NULL";
+        }
     }else{
         gpuParallelAction->setChecked(!gpuParallelAction->isChecked());
     }
@@ -218,6 +225,12 @@ void MainWindow::sliceAction()
 void MainWindow::gcodeAction()
 {
     if(getTcpStatus()  && processcheck(Processnode::SLICE)){
+        pathprogress->initProgress(layerNumber);
+        infillTime.start();
+        pathprogress->log("开始准备生成gcode代码 , 总共有"+ QString::number(layerNumber) +"层 ! ");
+        pathprogress->setModal(true);
+        pathprogress->show();
+        //SendSignal("infill/");
         SendSignal("gcode/");
     }
 }
@@ -309,12 +322,17 @@ void MainWindow::Showsend()
 void MainWindow::ShowpathProgress()
 {
     if(getTcpStatus() && processcheck(Processnode::SLICE)){
-        pathprogress->initProgress(layerNumber);
         infillTime.start();
-        pathprogress->log("开始准备进行填充 , 总共有"+ QString::number(layerNumber) +"层 ! ");
-        pathprogress->setModal(true);
-        pathprogress->show();
+        if(infillpartern=="CPU")
+        {
+            pathprogress->initProgress(layerNumber);
+            pathprogress->log("开始准备进行填充 , 总共有"+ QString::number(layerNumber) +"层 ! ");
+            pathprogress->setModal(true);
+            pathprogress->show();
+        }
+
         SendSignal("infill/");
+        StatusSignal("开始进行路径填充");
     }
 }
 
@@ -364,14 +382,32 @@ void MainWindow::RecvSignal()
                if(list[1] == "progress"){
                    pathprogress->log("正在对"+ list[2] +"层进行填充 , 请稍候 !");
                    pathprogress->updateProgress(list[2].toInt());
+                   //StatusSignal("正在对"+list[2]+"层进行填充 , 请稍候 !");
                }else if(list[1] == "start"){
-                   StatusSignal("开始进行路径填充");
+                   //StatusSignal("开始进行路径填充");
                }else if(list[1] == "end"){
                    processnode = Processnode::INFILL;
+                   pathprogress->log("正在对"+QString::number(layerNumber)+"层进行填充 , 请稍候 !");
+                   pathprogress->updateProgress(layerNumber);
                    pathprogress->setStatus(false);
                    int timeElapsed = infillTime.elapsed();
                    pathprogress->log("耗时"+QString::number((timeElapsed*1.0)/1000,'f',2)+"s ！");
                    StatusSignal("路径填充已经结束, 耗时"+QString::number((timeElapsed*1.0)/1000,'f',2)+"s");
+               }
+           }else if(list[0] == "gcode"){
+               if(list[1] == "progress"){
+                   pathprogress->log("正在生成"+ list[2] +"层gcode代码 , 请稍候 !");
+                   pathprogress->updateProgress(list[2].toInt());
+               }else if(list[1] == "start"){
+                   StatusSignal("开始生成gcode代码");
+               }else if(list[1] == "end"){
+                   processnode = Processnode::INFILL;
+                   pathprogress->log("正在生成"+QString::number(layerNumber)+"层gcode代码 , 请稍候 !");
+                   pathprogress->updateProgress(layerNumber);
+                   pathprogress->setStatus(false);
+                   int timesum = infillTime.elapsed();
+                   pathprogress->log("耗时"+QString::number((timesum*1.0)/1000,'f',2)+"s ！");
+                   StatusSignal("gcode代码生成已经结束, 耗时"+QString::number((timesum*1.0)/1000,'f',2)+"s");
                }
            }else if(list[0] == "targetFile"){
                processnode = Processnode::CHOOSEFILE;
@@ -397,7 +433,11 @@ void MainWindow::RecvSignal()
                    showMessageBox("没有该层的路径文件");
                }
            }else if(list[0] == "parallel"){
-               StatusSignal("加速方式已设置为" + list[1] + "加速");
+               if(list[1] == "NULL"){
+                   StatusSignal("并行加速已取消");
+               }else{
+                   StatusSignal("加速方式已设置为" + list[1] + "加速");
+               }
            }else if(list[0] == "infillStyle"){
                if(list[1] == "INFILL_CONCENTRIC"){
                    StatusSignal("填充方式已设置为Offset");

@@ -23,7 +23,7 @@ Server::~Server()
 void Server::init()
 {
     port = 8010;
-    parallelStyle = "CPU";  // 默认为CPU加速
+    parallelStyle = "NULL";  // 默认为不加速
     infillStyle = "INFILL_LINES";  // 默认填充方式为INFILL_LINES
     server = new QTcpServer();
     cmd = new QProcess();
